@@ -71,9 +71,9 @@ fi
 if [ -n "$UI_UX_SCRIPT" ]; then
     dep_notice="\n\n<DEPENDENCY>\nUI_UX_PRO_MAX_SCRIPT=${UI_UX_SCRIPT}\nui-ux-pro-max is available for visual/UI project mockup generation.\n</DEPENDENCY>"
 elif [ -d "$plugin_cache" ] && [ "$UI_UX_REGISTERED" != "true" ]; then
-    dep_notice="\n\n<DEPENDENCY>\nui-ux-pro-max files found but NOT registered for this project (installed for another project with local scope).\nInstall for this project: claude plugin install ui-ux-pro-max@ui-ux-pro-max-skill --scope local\n</DEPENDENCY>"
+    dep_notice="\n\n<important-reminder>IN YOUR FIRST REPLY AFTER SEEING THIS MESSAGE YOU MUST TELL THE USER:\nui-ux-pro-max is NOT installed for this project. Install it now:\n  claude plugin install ui-ux-pro-max@ui-ux-pro-max-skill --scope local\n</important-reminder>"
 else
-    dep_notice="\n\n<DEPENDENCY>\nui-ux-pro-max is NOT installed. Visual mockup generation in brainstorming will be unavailable.\nInstall with: /plugin install ui-ux-pro-max@ui-ux-pro-max-skill\n</DEPENDENCY>"
+    dep_notice="\n\n<important-reminder>IN YOUR FIRST REPLY AFTER SEEING THIS MESSAGE YOU MUST TELL THE USER:\nui-ux-pro-max is NOT installed. Visual mockup generation in brainstorming will be unavailable.\nInstall with: /plugin install ui-ux-pro-max@ui-ux-pro-max-skill\n</important-reminder>"
 fi
 dep_notice_escaped=$(escape_for_json "$dep_notice")
 
