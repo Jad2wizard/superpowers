@@ -19,18 +19,20 @@ Every project goes through this process. A todo list, a single-function utility,
 
 ## Checklist
 
-You MUST create a task for each of these items and complete them in order:
+Use the TaskCreate tool to create exactly these tasks and complete them in order:
 
 1. **Explore project context** — check files, docs, recent commits
 2. **Offer visual companion** (if the project involves any visual interface — web, mobile, dashboard, UI components) — this is its own message, not combined with a clarifying question. See the Visual Companion section below. Step 6 (Generate UI Mockups) depends on the companion being active. If you skip this step, mockup generation in Step 6 will be significantly degraded.
 3. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
-4. **Propose 2-3 approaches** — with trade-offs and your recommendation
-5. **Present design** — in sections scaled to their complexity, get user approval after each section
+4. **Propose 2-3 approaches in the browser** — Write each approach as HTML content to the visual companion. Show architecture diagrams and trade-off comparisons side-by-side. Do NOT use terminal text for this step if the companion is running.
+5. **Present design in the browser** — Write each design section as HTML to the visual companion. Architecture, component tree, data flow — present all of them visually. Get user approval after each section. Do NOT present design sections in terminal text when the companion is running.
 6. **Generate UI Mockups** (visual/UI projects only) — invoke ui-ux-pro-max, generate HTML design tokens and screen mockups. Skip for non-visual projects. See Step 6 section below.
 7. **Write design doc** — save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` and commit
 8. **Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
 9. **User reviews written spec** — ask user to review the spec file before proceeding
 10. **Transition to implementation** — invoke writing-plans skill to create implementation plan
+
+Do NOT merge or skip any of these tasks. Each one must be a separate TaskCreate call.
 
 ## Process Flow
 
