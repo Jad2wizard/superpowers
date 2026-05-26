@@ -35,16 +35,43 @@ warning_escaped=$(escape_for_json "$warning_message")
 
 # --- ui-ux-pro-max script path discovery ---
 UI_UX_SCRIPT=""
+UI_UX_REGISTERED=false
+PLUGINS_JSON="${HOME}/.claude/plugins/installed_plugins.json"
 plugin_cache="${HOME}/.claude/plugins/cache/ui-ux-pro-max-skill/ui-ux-pro-max"
-if [ -d "$plugin_cache" ]; then
+current_project="$(pwd 2>/dev/null || echo "")"
+
+# Check if ui-ux-pro-max is registered in installed_plugins.json (not just files on disk)
+if [ -f "$PLUGINS_JSON" ] && [ -n "$current_project" ]; then
+    UI_UX_REGISTERED=$(python3 -c "
+import json
+with open('$PLUGINS_JSON') as f:
+    data = json.load(f)
+key = 'ui-ux-pro-max@ui-ux-pro-max-skill'
+if key in data.get('plugins', {}):
+    for entry in data['plugins'][key]:
+        scope = entry.get('scope', '')
+        proj = entry.get('projectPath', '')
+        # user scope = available everywhere; local scope = must match current project
+        if scope == 'user' or (scope in ('local', 'project') and proj == '$current_project'):
+            print('true')
+            exit(0)
+print('false')
+" 2>/dev/null || echo "false")
+fi
+
+# Find the script if both files exist AND plugin is registered
+if [ "$UI_UX_REGISTERED" = "true" ] && [ -d "$plugin_cache" ]; then
     UI_UX_PATH=$(find "$plugin_cache" -maxdepth 1 -type d -name '[0-9]*' | sort -V | tail -1)
     if [ -n "$UI_UX_PATH" ] && [ -f "$UI_UX_PATH/src/ui-ux-pro-max/scripts/search.py" ]; then
         UI_UX_SCRIPT="$UI_UX_PATH/src/ui-ux-pro-max/scripts/search.py"
     fi
 fi
 
+# Three possible states
 if [ -n "$UI_UX_SCRIPT" ]; then
     dep_notice="\n\n<DEPENDENCY>\nUI_UX_PRO_MAX_SCRIPT=${UI_UX_SCRIPT}\nui-ux-pro-max is available for visual/UI project mockup generation.\n</DEPENDENCY>"
+elif [ -d "$plugin_cache" ] && [ "$UI_UX_REGISTERED" != "true" ]; then
+    dep_notice="\n\n<DEPENDENCY>\nui-ux-pro-max files found but NOT registered for this project (installed for another project with local scope).\nInstall for this project: claude plugin install ui-ux-pro-max@ui-ux-pro-max-skill --scope local\n</DEPENDENCY>"
 else
     dep_notice="\n\n<DEPENDENCY>\nui-ux-pro-max is NOT installed. Visual mockup generation in brainstorming will be unavailable.\nInstall with: /plugin install ui-ux-pro-max@ui-ux-pro-max-skill\n</DEPENDENCY>"
 fi
