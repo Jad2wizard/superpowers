@@ -92,7 +92,7 @@ digraph brainstorming {
 **Presenting the design:**
 
 - Once you believe you understand what you're building, present the design
-- Scale each section to its complexity: a few sentences if straightforward, up to 200-300 words if nuanced
+- **If the visual companion is running, present each design section in the browser.** Write HTML content for architecture diagrams, component trees, and data flow — push them to the companion. Keep terminal text to brief transition messages.
 - Ask after each section whether it looks right so far
 - Cover: architecture, components, data flow, error handling, testing
 - Be ready to go back and clarify if something doesn't make sense
@@ -152,21 +152,24 @@ Wait for the user's response. If they request changes, make them and re-run the 
 
 ## Visual Companion
 
-A browser-based companion for showing mockups, diagrams, and visual options during brainstorming. Available as a tool — not a mode. Accepting the companion means it's available for questions that benefit from visual treatment; it does NOT mean every question goes through the browser.
+A browser-based companion for showing mockups, diagrams, and visual options during brainstorming.
 
 **Offering the companion:** When you anticipate that upcoming questions will involve visual content (mockups, layouts, diagrams), offer it once for consent:
 > "Some of what we're working on might be easier to explain if I can show it to you in a web browser. I can put together mockups, diagrams, comparisons, and other visuals as we go. This feature is still new and can be token-intensive. Want to try it? (Requires opening a local URL)"
 
 **This offer MUST be its own message.** Do not combine it with clarifying questions, context summaries, or any other content. The message should contain ONLY the offer above and nothing else. Wait for the user's response before continuing. If they decline, proceed with text-only brainstorming.
 
-**Per-question decision:** Even after the user accepts, decide FOR EACH QUESTION whether to use the browser or the terminal. The test: **would the user understand this better by seeing it than reading it?**
+**When the visual companion is running:**
 
-- **Use the browser** for content that IS visual — mockups, wireframes, layout comparisons, architecture diagrams, side-by-side visual designs
-- **Use the terminal** for content that is text — requirements questions, conceptual choices, tradeoff lists, A/B/C/D text options, scope decisions
+- **Step 3 (Clarifying questions)**: Terminal is fine for text questions.
+- **Step 4 (Propose approaches)**: Use the browser to show side-by-side visual comparisons of each approach. Architecture diagrams, component layouts, and trade-off tables are ALL visual content.
+- **Step 5 (Present design)**: EVERY design section MUST be presented in the browser. Write HTML content for each section as you present it. Architecture, component tree, data flow, error handling — push all of them to the visual companion. Do not present design sections in plain terminal text when the companion is available.
+- **Step 6 (Generate UI Mockups)**: All mockup files go to the visual companion's screen_dir.
 
-A question about a UI topic is not automatically a visual question. "What does personality mean in this context?" is a conceptual question — use the terminal. "Which wizard layout works better?" is a visual question — use the browser.
+**The rule: once the companion server is running, the browser becomes the primary presentation surface for Steps 4, 5, and 6.** The terminal is for clarification questions (Step 3) and brief transition messages. Do not let the browser sit empty while presenting visual content in the terminal.
 
 If they agree to the companion, read the detailed guide before proceeding:
+
 `skills/brainstorming/visual-companion.md`
 
 ## Step 6: Generate UI Mockups (Visual Projects Only)
