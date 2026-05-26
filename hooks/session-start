@@ -32,7 +32,25 @@ escape_for_json() {
 
 using_superpowers_escaped=$(escape_for_json "$using_superpowers_content")
 warning_escaped=$(escape_for_json "$warning_message")
-session_context="<EXTREMELY_IMPORTANT>\nYou have superpowers.\n\n**Below is the full content of your 'superpowers:using-superpowers' skill - your introduction to using skills. For all other skills, use the 'Skill' tool:**\n\n${using_superpowers_escaped}\n\n${warning_escaped}\n</EXTREMELY_IMPORTANT>"
+
+# --- ui-ux-pro-max script path discovery ---
+UI_UX_SCRIPT=""
+plugin_cache="${HOME}/.claude/plugins/cache/ui-ux-pro-max-skill/ui-ux-pro-max"
+if [ -d "$plugin_cache" ]; then
+    UI_UX_PATH=$(find "$plugin_cache" -maxdepth 1 -type d -name '[0-9]*' | sort -V | tail -1)
+    if [ -n "$UI_UX_PATH" ] && [ -f "$UI_UX_PATH/src/ui-ux-pro-max/scripts/search.py" ]; then
+        UI_UX_SCRIPT="$UI_UX_PATH/src/ui-ux-pro-max/scripts/search.py"
+    fi
+fi
+
+if [ -n "$UI_UX_SCRIPT" ]; then
+    dep_notice="\n\n<DEPENDENCY>\nUI_UX_PRO_MAX_SCRIPT=${UI_UX_SCRIPT}\nui-ux-pro-max is available for visual/UI project mockup generation.\n</DEPENDENCY>"
+else
+    dep_notice="\n\n<DEPENDENCY>\nui-ux-pro-max is NOT installed. Visual mockup generation in brainstorming will be unavailable.\nInstall with: /plugin install ui-ux-pro-max@ui-ux-pro-max-skill\n</DEPENDENCY>"
+fi
+dep_notice_escaped=$(escape_for_json "$dep_notice")
+
+session_context="<EXTREMELY_IMPORTANT>\nYou have superpowers.\n\n**Below is the full content of your 'superpowers:using-superpowers' skill - your introduction to using skills. For all other skills, use the 'Skill' tool:**\n\n${using_superpowers_escaped}\n\n${warning_escaped}\n${dep_notice_escaped}\n</EXTREMELY_IMPORTANT>"
 
 # Output context injection as JSON.
 # Cursor hooks expect additional_context (snake_case).

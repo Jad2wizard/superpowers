@@ -38,6 +38,23 @@ Task tool (general-purpose):
 
     Work from: [directory]
 
+    ## Vue Tech Stack Skills
+
+    When writing Vue code or Vue-related tests, you MUST load and follow the
+    relevant skills from ~/.claude/skills/ before writing any code. Use the
+    Skill tool to invoke them:
+
+    - **Writing Vue components or SFCs:** invoke `vue` and `vue-best-practices`
+    - **Writing Vue Router code:** invoke `vue-router-best-practices`
+    - **Writing Pinia stores:** invoke `pinia`
+    - **Writing Vue composables:** invoke `vueuse-functions`
+    - **Writing tests (Vitest):** invoke `vitest` and `vue-testing-best-practices`
+    - **Vite config or build issues:** invoke `vite`
+
+    Invoke the relevant skill(s) BEFORE you start writing the code they cover.
+    Follow their guidelines exactly — they contain up-to-date patterns, best
+    practices, and API details specific to this tech stack.
+
     **While you work:** If you encounter something unexpected or unclear, **ask questions**.
     It's always OK to pause and clarify. Don't guess or make assumptions.
 

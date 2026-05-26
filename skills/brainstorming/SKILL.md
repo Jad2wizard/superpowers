@@ -26,10 +26,11 @@ You MUST create a task for each of these items and complete them in order:
 3. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
 4. **Propose 2-3 approaches** — with trade-offs and your recommendation
 5. **Present design** — in sections scaled to their complexity, get user approval after each section
-6. **Write design doc** — save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` and commit
-7. **Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
-8. **User reviews written spec** — ask user to review the spec file before proceeding
-9. **Transition to implementation** — invoke writing-plans skill to create implementation plan
+6. **Generate UI Mockups** (visual/UI projects only) — invoke ui-ux-pro-max, generate HTML design tokens and screen mockups. Skip for non-visual projects. See Step 6 section below.
+7. **Write design doc** — save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` and commit
+8. **Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
+9. **User reviews written spec** — ask user to review the spec file before proceeding
+10. **Transition to implementation** — invoke writing-plans skill to create implementation plan
 
 ## Process Flow
 
@@ -42,6 +43,8 @@ digraph brainstorming {
     "Propose 2-3 approaches" [shape=box];
     "Present design sections" [shape=box];
     "User approves design?" [shape=diamond];
+    "Visual interface project?" [shape=diamond];
+    "Generate UI Mockups\n(invoke ui-ux-pro-max)" [shape=box];
     "Write design doc" [shape=box];
     "Spec self-review\n(fix inline)" [shape=box];
     "User reviews spec?" [shape=diamond];
@@ -55,7 +58,10 @@ digraph brainstorming {
     "Propose 2-3 approaches" -> "Present design sections";
     "Present design sections" -> "User approves design?";
     "User approves design?" -> "Present design sections" [label="no, revise"];
-    "User approves design?" -> "Write design doc" [label="yes"];
+    "User approves design?" -> "Visual interface project?" [label="yes"];
+    "Visual interface project?" -> "Generate UI Mockups\n(invoke ui-ux-pro-max)" [label="yes"];
+    "Visual interface project?" -> "Write design doc" [label="no"];
+    "Generate UI Mockups\n(invoke ui-ux-pro-max)" -> "Write design doc";
     "Write design doc" -> "Spec self-review\n(fix inline)";
     "Spec self-review\n(fix inline)" -> "User reviews spec?";
     "User reviews spec?" -> "Write design doc" [label="changes requested"];
@@ -162,3 +168,50 @@ A question about a UI topic is not automatically a visual question. "What does p
 
 If they agree to the companion, read the detailed guide before proceeding:
 `skills/brainstorming/visual-companion.md`
+
+## Step 6: Generate UI Mockups (Visual Projects Only)
+
+**Decision:** Does the project involve any visual interface (web, mobile, dashboard, landing page, data visualization)? If NO, skip to Step 7.
+
+### 6a. Invoke ui-ux-pro-max skill
+
+Use the Skill tool to invoke `ui-ux-pro-max`. This loads the full design intelligence context — 161 UX rules, 50+ styles, color/typography databases, and pre-delivery checklist. If the skill is not available, skip to Step 7 and inform the user.
+
+### 6b. Locate CLI script
+
+Use the `UI_UX_PRO_MAX_SCRIPT` path from the session context (injected by the SessionStart hook). If not available, discover it with:
+
+```bash
+find ~/.claude/plugins/cache/ui-ux-pro-max-skill -name search.py -path "*/ui-ux-pro-max/scripts/*" | sort -V | tail -1
+```
+
+If not found, skip to Step 7 and tell the user to install ui-ux-pro-max.
+
+### 6c. Run design intelligence queries
+
+Use the script path discovered in 6b to generate design data. Default to `--stack vue`:
+
+```bash
+python3 "$SCRIPT" "<product type> <industry> <style keywords>" --design-system --stack vue -p "<project name>"
+python3 "$SCRIPT" "<query>" --domain color
+python3 "$SCRIPT" "<query>" --domain typography
+python3 "$SCRIPT" "<query>" --domain ux
+```
+
+### 6d. Generate tokens page
+
+Write `ui-01-tokens.html` to the visual companion's `screen_dir` (or `docs/superpowers/mockups/` if no companion is running). Content: color swatches with hex values, typography samples (heading/body/code), spacing scale — all using actual token values from the 6c output.
+
+### 6e. Generate screen mockups
+
+For each screen/page identified in the approved design (Step 5), generate an HTML mockup file using the visual companion's mockup CSS classes. Use design tokens from 6d for colors, typography, and spacing. Name files sequentially: `ui-02-<name>.html`, `ui-03-<name>.html`, etc. Generate all screens in one pass.
+
+### 6f. Generate combined view
+
+Write `ui-all-screens.html` combining all mockups with section headers and navigation. Present to user via the visual companion URL.
+
+### 6g. User approval
+
+Wait for the user to review mockups in the visual companion. Iterate on any screens that need changes. Only proceed to Step 7 after the user approves the visual direction.
+
+**Principle:** ui-ux-pro-max is a design data source, not a replacement for brainstorming's conversational flow. Its output is the basis for discussion; final decisions are confirmed by the user.
