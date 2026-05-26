@@ -42,17 +42,18 @@ current_project="$(pwd 2>/dev/null || echo "")"
 
 # Check if ui-ux-pro-max is registered in installed_plugins.json (not just files on disk)
 if [ -f "$PLUGINS_JSON" ] && [ -n "$current_project" ]; then
-    UI_UX_REGISTERED=$(python3 -c "
-import json
-with open('$PLUGINS_JSON') as f:
+    UI_UX_REGISTERED=$(PLUGINS_JSON="$PLUGINS_JSON" CURRENT_PROJECT="$current_project" python3 -c "
+import json, os
+with open(os.environ['PLUGINS_JSON']) as f:
     data = json.load(f)
 key = 'ui-ux-pro-max@ui-ux-pro-max-skill'
+target = os.environ['CURRENT_PROJECT']
 if key in data.get('plugins', {}):
     for entry in data['plugins'][key]:
         scope = entry.get('scope', '')
         proj = entry.get('projectPath', '')
         # user scope = available everywhere; local scope = must match current project
-        if scope == 'user' or (scope in ('local', 'project') and proj == '$current_project'):
+        if scope == 'user' or (scope in ('local', 'project') and proj == target):
             print('true')
             exit(0)
 print('false')
