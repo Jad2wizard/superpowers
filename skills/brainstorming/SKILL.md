@@ -22,7 +22,7 @@ Every project goes through this process. A todo list, a single-function utility,
 You MUST create a task for each of these items and complete them in order:
 
 1. **Explore project context** — check files, docs, recent commits
-2. **Offer visual companion** (if topic will involve visual questions) — this is its own message, not combined with a clarifying question. See the Visual Companion section below.
+2. **Offer visual companion** (if the project involves any visual interface — web, mobile, dashboard, UI components) — this is its own message, not combined with a clarifying question. See the Visual Companion section below. Step 6 (Generate UI Mockups) depends on the companion being active. If you skip this step, mockup generation in Step 6 will be significantly degraded.
 3. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
 4. **Propose 2-3 approaches** — with trade-offs and your recommendation
 5. **Present design** — in sections scaled to their complexity, get user approval after each section
@@ -212,6 +212,8 @@ Write `ui-all-screens.html` combining all mockups with section headers and navig
 
 ### 6g. User approval
 
-Wait for the user to review mockups in the visual companion. Iterate on any screens that need changes. Only proceed to Step 7 after the user approves the visual direction.
+<HARD-GATE>
+Present the mockups to the user. If the visual companion is running, point them to the URL. If not, tell them the file paths. Then ASK the user: "Does the UI design look good, or would you like any changes?" DO NOT proceed to Step 7 until the user explicitly approves the visual direction. Iterate on any screens that need changes and ask again.
+</HARD-GATE>
 
 **Principle:** ui-ux-pro-max is a design data source, not a replacement for brainstorming's conversational flow. Its output is the basis for discussion; final decisions are confirmed by the user.

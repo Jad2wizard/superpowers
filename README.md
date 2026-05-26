@@ -5,14 +5,17 @@ Superpowers-Vue is a fork of [Superpowers](https://github.com/obra/superpowers) 
 ## Quickstart
 
 ```bash
-# Install from GitHub
-claude plugin install superpowers-vue@Jad2wizard/superpowers
+# Register the marketplace (from GitHub)
+claude plugin marketplace add Jad2wizard/superpowers
+
+# Install superpowers-vue
+claude plugin install superpowers-vue@superpowers-vue-marketplace
 
 # Install required dependency
 claude plugin install ui-ux-pro-max@ui-ux-pro-max-skill
 ```
 
-Or for local development:
+Or via local directory:
 
 ```bash
 git clone https://github.com/Jad2wizard/superpowers.git
