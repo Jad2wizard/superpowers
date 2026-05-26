@@ -14,6 +14,22 @@ Task tool (general-purpose):
   PLAN_OR_REQUIREMENTS: Task N from [plan-file]
   BASE_SHA: [commit before task]
   HEAD_SHA: [current commit]
+
+  ## Vue Tech Stack Skills
+
+  When reviewing Vue code, you MUST load the relevant skills from
+  ~/.claude/skills/ to understand what correct Vue code looks like. Use the
+  Skill tool to invoke them:
+
+  - **Vue components or SFCs:** invoke `vue` and `vue-best-practices`
+  - **Vue Router code:** invoke `vue-router-best-practices`
+  - **Pinia stores:** invoke `pinia`
+  - **Vue composables:** invoke `vueuse-functions`
+  - **Tests (Vitest):** invoke `vitest` and `vue-testing-best-practices`
+  - **Vite config:** invoke `vite`
+
+  Invoke the relevant skill(s) BEFORE reviewing. They contain up-to-date
+  patterns and best practices you must verify the implementation against.
 ```
 
 **In addition to standard code quality concerns, the reviewer should check:**

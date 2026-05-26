@@ -48,6 +48,30 @@ claude plugin install ui-ux-pro-max@ui-ux-pro-max-skill --scope "$SCOPE" 2>/dev/
     echo "    ui-ux-pro-max may already be installed."
 
 echo ""
+echo "==> Installing Vue tech stack skills to ~/.claude/skills/..."
+VUE_SKILLS_SRC="${SCRIPT_DIR}/vue-skills"
+VUE_SKILLS_DEST="${HOME}/.claude/skills"
+
+if [ -d "$VUE_SKILLS_SRC" ]; then
+    mkdir -p "$VUE_SKILLS_DEST"
+    installed_count=0
+    for skill_dir in "$VUE_SKILLS_SRC"/*; do
+        skill_name="$(basename "$skill_dir")"
+        dest_path="${VUE_SKILLS_DEST}/${skill_name}"
+        if [ -d "$dest_path" ]; then
+            echo "    [skip] ${skill_name} already exists"
+        else
+            cp -r "$skill_dir" "$dest_path"
+            echo "    [install] ${skill_name}"
+            installed_count=$((installed_count + 1))
+        fi
+    done
+    echo "    ${installed_count} Vue skill(s) installed."
+else
+    echo "    WARNING: vue-skills/ directory not found, skipping Vue skill installation."
+fi
+
+echo ""
 echo "==> superpowers-vue installation complete."
 echo "    Restart Claude Code to apply changes."
 echo ""
