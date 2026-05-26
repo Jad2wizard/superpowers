@@ -104,6 +104,14 @@ When multiple skills could apply, use this order:
 "Let's build X" → brainstorming first, then implementation skills.
 "Fix this bug" → debugging first, then domain-specific skills.
 
+## Required Dependencies
+
+superpowers-vue requires `ui-ux-pro-max` for UI design during brainstorming.
+
+**Check at session start:** Read the `<DEPENDENCY>` or `<important-reminder>` tags in the system prompt. If they indicate ui-ux-pro-max is missing or not registered for this project, you MUST tell the user in your FIRST reply. The install command is in the tag.
+
+Without ui-ux-pro-max, the brainstorming Step 6 (Generate UI Mockups) will be skipped for visual projects.
+
 ## Skill Types
 
 **Rigid** (TDD, debugging): Follow exactly. Don't adapt away discipline.
