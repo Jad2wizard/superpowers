@@ -168,7 +168,17 @@ Then: Cleanup worktree (Step 6), then force-delete branch:
 git branch -D <feature-branch>
 ```
 
-### Step 6: Cleanup Workspace
+### Step 6: Offer E2E Testing (Vue Projects)
+
+After the user's chosen option completes (and before cleanup for Options 1/4), offer Playwright E2E validation for visual Vue projects:
+
+> "Would you like me to run Playwright E2E tests against the project's main user flows? This validates the full application in a real browser."
+
+If the user says yes, invoke `superpowers:e2e-main-flow-testing`. Let it complete fully before proceeding to cleanup.
+
+Skip this offer for Option 4 (Discard).
+
+### Step 7: Cleanup Workspace
 
 **Only runs for Options 1 and 4.** Options 2 and 3 always preserve the worktree.
 

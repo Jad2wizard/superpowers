@@ -121,6 +121,24 @@ digraph brainstorming {
 - Use elements-of-style:writing-clearly-and-concisely skill if available
 - Commit the design document to git
 
+**UI Design chapter — mockup reference (required when Step 6 was executed):**
+
+When UI mockups were generated (Step 6), the design doc's UI Design chapter MUST include an authoritative reference to the combined mockup file:
+
+```markdown
+## UI Design
+
+**权威参考文件**: `.superpowers/brainstorm/<session-id>/content/ui-all-screens.html`
+
+所有前端组件的样式、布局、交互必须严格遵循此文件中的设计。该文件包含以下完整界面的像素级 mockup：
+
+- [列出每个 screen 的名称和对应文件，如 ui-02-homepage.html, ui-03-dashboard.html]
+```
+
+Replace `<session-id>` with the actual session directory name (the timestamp-based directory under `.superpowers/brainstorm/`). This path is obtained from `screen_dir` returned when the visual companion server started.
+
+The authoritative reference ensures that writing-plans and implementer subagents have a concrete, pixel-level design target. Every frontend task's acceptance criteria should reference specific screens from this file.
+
 **Spec Self-Review:**
 After writing the spec document, look at it with fresh eyes:
 
