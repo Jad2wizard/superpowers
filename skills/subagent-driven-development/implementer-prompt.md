@@ -29,48 +29,14 @@ Task tool (general-purpose):
     ## Your Job
 
     Once you're clear on requirements:
-    1. Write the failing test FIRST (see TDD Requirements below)
-    2. Run the test to verify it fails
-    3. Write the minimal implementation to make the test pass
-    4. Run the test to verify it passes
-    5. Verify implementation works
-    6. Commit your work
-    7. Self-review (see below)
-    8. Report back
+    1. Implement exactly what the task specifies
+    2. Write tests (following TDD if task says to)
+    3. Verify implementation works
+    4. Commit your work
+    5. Self-review (see below)
+    6. Report back
 
     Work from: [directory]
-
-    ## TDD Requirements
-
-    You MUST follow the TDD cycle for every feature task. Write the test FIRST,
-    watch it fail, then write the code to make it pass. Do NOT write
-    implementation code before the test.
-
-    **TDD exceptions — these task types do NOT need tests:**
-    - Configuration files (vite.config, tsconfig, eslint, prettier, env files)
-    - Project scaffolding (package.json scripts, directory structure, index.html)
-    - Boilerplate setup (router setup, app entry point wiring, plugin registration)
-    - Markdown documentation or README files
-
-    If your task falls into one of the exception categories, skip the TDD steps
-    and proceed directly to implementation. Otherwise, TDD is NON-NEGOTIABLE.
-
-    ## Testing Approach
-
-    **Test runner:** Vitest.
-
-    **Test mode by code type:**
-    | Code type | Test mode | Runner |
-    |-----------|-----------|--------|
-    | Vue SFCs (components) | browser | `@vitest/browser` |
-    | Composables | node | `vitest` |
-    | Pinia stores | node | `vitest` |
-    | Utility/helper functions | node | `vitest` |
-    | E2E flows | browser | Playwright |
-
-    Place test files alongside the source files they test, using the `.test.ts`
-    or `.test.tsx` suffix. Vue component tests use `.test.ts` with
-    `@vitest/browser` render utilities.
 
     ## Vue Tech Stack Skills
 

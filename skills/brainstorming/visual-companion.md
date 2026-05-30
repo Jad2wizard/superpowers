@@ -14,15 +14,19 @@ Decide per-question, not per-session. The test: **would the user understand this
 - **Design polish** — when the question is about look and feel, spacing, visual hierarchy
 - **Spatial relationships** — state machines, flowcharts, entity relationships rendered as diagrams
 
-**Use the terminal** when the content is text or tabular:
+**Use the terminal** when the content is purely informational or the companion isn't running:
 
-- **Requirements and scope questions** — "what does X mean?", "which features are in scope?"
-- **Conceptual A/B/C choices** — picking between approaches described in words
-- **Tradeoff lists** — pros/cons, comparison tables
-- **Technical decisions** — API design, data modeling, architectural approach selection
-- **Clarifying questions** — anything where the answer is words, not a visual preference
+- **Open-ended questions** — "what does X mean?", "describe Y" — no discrete options to select
+- **Requirements and scope discussions** — "which features are in scope?" — long-form text that doesn't fit option cards
+- **Tradeoff lists** — pros/cons, comparison tables (use the browser if the companion is running)
 
-A question *about* a UI topic is not automatically a visual question. "What kind of wizard do you want?" is conceptual — use the terminal. "Which of these wizard layouts feels right?" is visual — use the browser.
+**When the companion IS running, push discrete-choice questions to the browser** even if the topic is conceptual:
+
+- **Multiple-choice clarifying questions** — A/B/C options, "which approach do you prefer?"
+- **Technical decisions** — API design choices, data modeling approaches (rendered as option cards)
+- **Architectural approach selection** — rendered as option cards with pros/cons in each card
+
+The rule: **if the question has discrete selectable options and the companion is running, use the browser.** Options persist visually, the user can click to select (recording structured events), and the selection state is clear. Terminal-only questions are for open-ended exploration without discrete choices.
 
 ## How It Works
 
@@ -128,6 +132,12 @@ Use `--url-host` to control what hostname is printed in the returned URL JSON.
 ## Writing Content Fragments
 
 Write just the content that goes inside the page. The server wraps it in the frame template automatically (header, theme CSS, selection indicator, and all interactive infrastructure).
+
+**Critical: single-file limitation.** The server only serves the newest file in `screen_dir`. It does NOT serve multiple files simultaneously. This means:
+- No iframes referencing sibling HTML files — they will show "Not Found"
+- No `<link>` or `<a>` to other files in `screen_dir` — they won't resolve
+- No `src` attributes pointing to other HTML files in the same directory
+- For combined views (e.g., mockup galleries), ALL content must be inlined into a single self-contained file
 
 **Minimal example:**
 

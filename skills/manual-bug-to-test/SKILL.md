@@ -3,116 +3,178 @@ name: manual-bug-to-test
 description: Use when the human partner reports a manually discovered bug and wants to convert it into an automated failing reproduction before debugging
 ---
 
-## 总结
+# Manual Bug to Automated Reproduction
 
-将人类手动发现的 bug 转化为 Playwright 浏览器复现脚本。在真实浏览器中跑通 bug 复现流程，捕获失败证据（截图 + DOM 快照 + 控制台错误），确认 RED 后交接给 systematic-debugging。
+## Overview
 
-# 手动 Bug 转自动化复现
+Convert a manually discovered bug into a Playwright `@playwright/test` reproduction. Run it in a real browser, capture structured failure evidence (evidence.json + page.html + page.txt + screenshot), confirm RED, and hand off to systematic-debugging.
 
-## 概述
+**Core principle:** No automated reproduction evidence, no debugging. Evidence must be comprehensive, structured, and directly consumable by Claude Code (text-based).
 
-将手动 bug 转化为 Playwright 驱动的浏览器复现脚本。唯一的测试环境是真实浏览器。
+## When to Use
 
-**核心原则：** 没有自动化复现证据，不进入调试。截图和 DOM 快照是 Claude 能读的证据。
+Human-triggered. Not auto-triggered.
 
-## 何时使用
+**Fits:**
+- Bug discovered through manual browser testing
+- Anomaly in a complete user flow
+- Intermittent issues (Playwright can retry until it reproduces)
 
-人类伙伴手动调用。不自动触发。
+**Does not fit:**
+- Bug already covered by an existing test (use systematic-debugging directly)
+- Pure environment/configuration issues
 
-**适用：**
-- 浏览器中手动操作发现的 bug
-- 完整用户流程中的异常
-- 不稳定复现的问题（Playwright 可重试直到复现）
+## Prerequisites
 
-**不适用：**
-- 已有复现测试的 bug（直接用 systematic-debugging）
-- 纯环境/配置问题
+- Project has `@playwright/test` + `playwright` installed
+- Project can start a dev server via `npm run dev` (or equivalent)
+- If not installed: `npm install -D @playwright/test playwright && npx playwright install chromium`
 
-## 前提
-
-- 项目已有 Playwright 依赖
-- 项目能通过 `npm run dev`（或等效命令）启动 dev server
-- 如果没有 Playwright：`npm install -D playwright @playwright/test && npx playwright install chromium`
-
-## 过程
-
-### 第一步：收集复现信息
-
-以下四项全部确认后再进入第二步：
-
-- [ ] **复现步骤**：精确操作序列。`点击"提交"按钮` 不够，必须是 `页面 /checkout 路由下，填写表单，点击 id="submit-btn" 的按钮`
-- [ ] **实际行为**：发生了什么（页面状态、错误弹窗、白屏、控制台报错文本）
-- [ ] **预期行为**：应该发生什么
-- [ ] **环境信息**：浏览器类型、页面路由、触发所需的数据状态
-
-缺任何一项 → 追问，不猜测。
-
-### 第二步：写 Playwright 复现脚本
-
-脚本写入 `scripts/bug-<简短描述>.ts`。使用本目录下的 `smoke-template.ts` 作为模板。
-
-**脚本必须：**
-- 启动浏览器，导航到 bug 触发的页面路由
-- 按第一步收集的步骤精确操作
-- 每一步之后截图（`page.screenshot()`）
-- 捕获控制台错误（`page.on('console')`）
-- 断言预期行为
-- 输出结构化 JSON：`{ passed, step, error: { message, screenshot, domSnapshot, url, consoleErrors } }`
-
-### 第三步：启动 dev server 并运行脚本
+Ensure `e2e/evidence-fixture.ts` is present. If the project already ran `e2e-main-flow-testing`, it exists. Otherwise, copy it from the `e2e-main-flow-testing` skill directory:
 
 ```bash
-# 终端1：启动 dev server
+cp skills/e2e-main-flow-testing/evidence-fixture.ts e2e/evidence-fixture.ts
+```
+
+## The Process
+
+### Step 1: Collect Reproduction Information
+
+Confirm all four items before proceeding to Step 2:
+
+- [ ] **Reproduction steps**: Precise action sequence. Not "click submit", but "on route `/checkout`, fill the form, click the button with id `submit-btn`"
+- [ ] **Actual behavior**: What happened (page state, error popup, white screen, console error text)
+- [ ] **Expected behavior**: What SHOULD have happened
+- [ ] **Environment info**: Browser, page route, data state required to trigger
+
+Missing any item → ask, don't guess.
+
+### Step 2: Write the Playwright Test
+
+Write the test to `e2e/bug-<short-description>.spec.ts`. Use the smoke-template pattern: import `evidence-fixture.ts`, annotate steps with `evidence.custom`, use semantic locators and web-first assertions.
+
+```typescript
+import { evidenceTest as test, expect } from './evidence-fixture'
+
+test('bug: <short description>', async ({ page, evidence }) => {
+  evidence.custom = { bug: '<short description>', source: 'manual-report' }
+
+  // Step 1: Navigate to the route where the bug occurs
+  evidence.custom.step = 'navigate'
+  await page.goto('/the-route')
+
+  // Step 2: Execute the exact reproduction steps from Step 1
+  evidence.custom.step = 'trigger-bug'
+  await page.getByRole('button', { name: 'Submit' }).click()
+
+  // Step 3: Assert expected behavior (this will fail — RED)
+  evidence.custom.step = 'verify'
+  await expect(page.getByTestId('result')).toContainText('Expected content')
+})
+```
+
+**What the fixture collects automatically:**
+- All console messages (log, warn, error) with location info
+- Console error calls with full stack traces (via injected interception)
+- `page.on('pageerror')` — uncaught page exceptions with stack traces
+- `page.on('requestfailed')` — failed network requests
+- `page.on('response', status >= 400)` — HTTP 4xx/5xx responses
+- Browser-side `window.onerror` and `unhandledrejection` with stack traces
+- Custom context via `evidence.custom`
+
+**On failure, evidence is exported to `e2e/output/`:**
+- `evidence.json` — structured summary with all collected events and custom context
+- `page.html` — current page HTML (`page.content()`)
+- `page.txt` — visible text content (`body.innerText`) — most useful for understanding the bug
+- `failure.png` — full-page screenshot (for human review, not agent consumption)
+
+#### Test Writing Guidelines
+
+**Locators — use in this priority order:**
+1. `getByRole` (most resilient) — `page.getByRole('button', { name: 'Submit' })`
+2. `getByLabel` / `getByPlaceholder` — `page.getByLabel('Email')`
+3. `getByText` — `page.getByText('Welcome')`
+4. `getByTestId` (when semantic locators aren't possible) — `page.getByTestId('submit-btn')`
+5. CSS/XPath — last resort, avoid
+
+**Assertions:**
+- Always use web-first assertions (auto-retry): `await expect(locator).toBeVisible()`
+- Never use generic assertions for DOM: `expect(await locator.isVisible()).toBe(true)` — no auto-retry, will flake
+- Progressive assertions before critical checks: verify container visible → loading done → content correct
+- Assert the exact expected behavior from Step 1
+
+**Waits:**
+- Never use `page.waitForTimeout()` or `setTimeout` — arbitrary waits cause flakiness
+- Locators auto-wait for actionability — no explicit waits needed for clicks/fills
+- Use `waitForResponse`, `waitForURL`, or web-first assertions for specific conditions
+
+**Test structure:**
+- One test per bug — self-contained, focuses solely on reproducing the reported issue
+- Use `evidence.custom.step` to annotate the current reproduction step — this appears in evidence on failure
+- Navigate from scratch in each test — no relying on state from previous tests
+
+### Step 3: Run the Test
+
+```bash
+# Start dev server
 npm run dev &
 
-# 终端2：运行复现脚本
-npx tsx scripts/bug-<简短描述>.ts
+# Run the bug reproduction
+npx playwright test e2e/bug-<short-description>.spec.ts --reporter=list
 ```
 
-结果判断：
+Result judgment:
 
 ```
-FAIL，错误信息与 bug 描述一致？
-  → ✅ RED 确认。将脚本输出的 JSON 传递给 systematic-debugging
+FAIL and the error matches the bug description?
+  → RED confirmed. Proceed to Step 4.
 
-FAIL，错误信息与 bug 描述不一致？
-  → 脚本有问题。检查操作步骤和断言，修正后重新运行
+FAIL but the error doesn't match the bug description?
+  → The test has a problem. Check the steps and assertions, fix the test, re-run.
 
-PASS（脚本通过）？
-  → 脚本没抓到 bug。检查是否在正确路由、是否正确模拟了触发条件
+PASS (test passes)?
+  → The test didn't catch the bug. Check url, route, trigger conditions.
+    The bug may need more precise reproduction steps.
 ```
 
-### 第四步：交接
+### Step 4: Hand Off to systematic-debugging
 
-RED 确认后，调用 systematic-debugging，传递：
+After RED is confirmed, invoke `superpowers:systematic-debugging` with:
 
 ```
-- 复现脚本：scripts/bug-<描述>.ts
-- 运行命令：npx tsx scripts/bug-<描述>.ts
-- 失败证据：<脚本输出的 JSON，含截图、DOM 快照、控制台错误>
+- Test file: e2e/bug-<description>.spec.ts
+- Run command: npx playwright test e2e/bug-<description>.spec.ts --reporter=list
+- Failure evidence: e2e/output/<test-name>-evidence.json
 ```
 
-**只有 Phase 1 可以跳过。** Phase 2（模式分析）和 Phase 3（假设验证）必须完整执行，并产出可见证据：
+To read the evidence:
+```bash
+cat e2e/output/<test-name>-evidence.json
+```
 
-- Phase 2 必须输出：工作代码 vs 问题代码的差异清单
-- Phase 3 必须输出：明确写下的假设 + 最小验证实验结果
+The evidence JSON contains: error message + stack, URL, all console messages, console error stacks, page errors, runtime errors, request failures, HTTP errors, custom context.
 
-复现脚本跑出失败 ≠ 找到了根因。看到错误栈就提修复 = 跳过了 Phase 2 和 Phase 3，这是违规。
+Also read `e2e/output/<test-name>-page.txt` for the visible text at failure point — often more useful for understanding what went wrong than raw HTML.
 
-## 修复后验证
+**Phase 2 (pattern analysis) and Phase 3 (hypothesis verification) in systematic-debugging must run fully.** The reproduction script producing a failure ≠ the root cause has been found. Seeing an error stack and proposing a fix = skipping Phase 2 and Phase 3 — this is a violation.
 
-TDD GREEN 修复完成后，重新跑复现脚本确认 PASS：
+## Post-Fix Verification
+
+After the TDD GREEN fix is complete, re-run the reproduction test to confirm PASS:
 
 ```bash
-npx tsx scripts/bug-<描述>.ts   # 应输出 { passed: true }
+npx playwright test e2e/bug-<description>.spec.ts --reporter=list
+# Should output: 1 passed
 ```
 
-## 红旗
+## Red Flags
 
-| 想法 | 现实 |
-|------|------|
-| "这个 bug 很明显，直接修" | 没有复现证据就没有证明。 |
-| "手动复现够了" | 手动靠记忆。脚本是永久证据。 |
-| "我先修，测试后补" | 没有失败复现就没有修复目标。 |
-| "写脚本太慢" | 手动复现 N 次 = 一个脚本的值。脚本跑一辈子。 |
-| "截图看不出来" | 加上 DOM 快照和控制台日志。Claude 能读这些。 |
+| Thought | Reality |
+|---------|---------|
+| "The bug is obvious, just fix it directly" | Without reproduction evidence, there's no proof. |
+| "Manual reproduction is enough" | Manual depends on memory. A script is permanent evidence. |
+| "I'll fix first, add the test later" | No failing reproduction = no fix target. |
+| "Writing a script takes too long" | Manually reproducing N times = value of one script. The script lasts forever. |
+| "I'll read the screenshot for clues" | Screenshots are for humans. Use `page.txt` and `evidence.json` instead. |
+| "I'll use CSS selectors, they're quicker" | CSS selectors break on refactoring. Use `getByRole`, `getByLabel`, or `getByTestId`. |
+| "I'll add `waitForTimeout` to make the bug repro" | `waitForTimeout` masks timing issues and makes reproductions flaky. Use web-first assertions. |

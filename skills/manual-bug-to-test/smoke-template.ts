@@ -1,91 +1,43 @@
 /**
- * Bug 复现脚本模板
+ * Bug reproduction template — use as a starting point for manual-bug-to-test.
  *
- * 用法: npx tsx scripts/bug-<描述>.ts
- * 需要先启动 dev server: npm run dev
+ * This is a reference template. The actual test is written to e2e/bug-<description>.spec.ts
+ * following the manual-bug-to-test skill process.
+ *
+ * Key patterns demonstrated:
+ * - Evidence fixture: automatic collection of all diagnostic events
+ * - evidence.custom: annotate each business step for debugging context
+ * - Semantic locators: getByRole > getByLabel > getByText > getByTestId
+ * - Web-first assertions: expect(locator).toBeVisible() with auto-retry
  */
+import { evidenceTest as test, expect } from './evidence-fixture'
 
-import { chromium } from 'playwright';
-
-const BASE_URL = process.env.BASE_URL || 'http://localhost:5173';
-
-interface BugError {
-  step: string;
-  message: string;
-  screenshot: string;
-  domSnapshot: string;
-  url: string;
-  consoleErrors: string[];
-  uncaughtErrors: string[];
-}
-
-interface Result {
-  passed: boolean;
-  bug?: string;
-  error?: BugError;
-}
-
-async function main(): Promise<void> {
-  const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext();
-  const page = await context.newPage();
-
-  // console.error() 调用
-  const consoleErrors: string[] = [];
-  page.on('console', (msg) => {
-    if (msg.type() === 'error') {
-      consoleErrors.push(msg.text());
+test.describe('Bug Reproduction: <short description>', () => {
+  test('reproduces the reported bug', async ({ page, evidence }) => {
+    // Annotate the bug for evidence tracking
+    evidence.custom = {
+      bug: '<short-description>',
+      source: 'manual-report',
+      step: 'init',
     }
-  });
 
-  // 未捕获的 JS 异常（undefined.foo、x is not a function 等）——白屏的常见原因
-  const uncaughtErrors: string[] = [];
-  page.on('pageerror', (err) => {
-    uncaughtErrors.push(err.message);
-  });
+    // --- Step 1: Navigate to the route where the bug occurs ---
+    evidence.custom.step = 'navigate'
+    await page.goto('/')
 
-  const result: Result = { passed: false };
+    // --- Step 2: Execute the exact reproduction steps from the bug report ---
+    evidence.custom.step = 'trigger-bug'
+    // Example: click a button that triggers the bug
+    // await page.getByRole('button', { name: 'Submit' }).click()
+    //
+    // Example: fill a form that triggers the bug
+    // await page.getByLabel('Email').fill('test@example.com')
 
-  try {
-    // === 第一步：导航到目标页面 ===
-    await page.goto(`${BASE_URL}/`, { waitUntil: 'networkidle' });
-
-    // === 第二步：执行复现步骤 ===
-    // TODO: 替换为实际复现步骤
-    // await page.click('button:has-text("提交")');
-    // await page.fill('input[name="email"]', 'test@example.com');
-
-    // === 第三步：断言预期行为 ===
-    // TODO: 替换为实际断言
-    // await page.waitForSelector('.success-message', { timeout: 5000 });
-    // const text = await page.textContent('.result');
-    // if (text !== '预期内容') {
-    //   throw new Error(`预期 '预期内容'，实际 '${text}'`);
-    // }
-
-    result.passed = true;
-  } catch (e) {
-    const error = e as Error;
-    result.error = {
-      step: 'TODO: 当前步骤描述',
-      message: error.message,
-      screenshot: (await page.screenshot({ type: 'png' })).toString('base64'),
-      domSnapshot: await page.evaluate(() => document.body.innerHTML),
-      url: page.url(),
-      consoleErrors,
-      uncaughtErrors,
-    };
-    result.bug = 'TODO: bug 简短描述';
-  }
-
-  // === 输出结构化 JSON ===
-  console.log(JSON.stringify(result, null, 2));
-  await browser.close();
-
-  // 有失败时非零退出
-  if (!result.passed) {
-    process.exit(1);
-  }
-}
-
-main();
+    // --- Step 3: Assert expected behavior (this will FAIL — RED) ---
+    evidence.custom.step = 'verify'
+    // Example assertions:
+    // await expect(page.getByTestId('result')).toContainText('Expected content')
+    // await expect(page.getByRole('heading')).toBeVisible()
+    // await expect(page.getByText('Success')).toBeVisible()
+  })
+})

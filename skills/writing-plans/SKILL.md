@@ -138,9 +138,9 @@ Every step must contain the actual content an engineer needs. These are **plan f
 - **Composables, stores, utilities, plain functions:** Use Vitest node mode. No DOM required.
 - **E2E/integration flows:** Use Playwright (via `@vitest/browser` or standalone).
 
-**TDD is mandatory for all feature tasks.** Every task that delivers visible behavior or logic MUST include the 5-step TDD cycle (test → fail → implement → pass → commit).
+Follow the standard TDD task template (test → fail → implement → pass → commit) when the task requires tests.
 
-**Test infrastructure setup:** If the project does not yet have testing dependencies installed, the FIRST task in the plan MUST set up the test infrastructure before any feature tasks:
+**Test infrastructure setup:** If the project does not yet have testing dependencies installed, the first task in the plan should set up the test infrastructure:
 
 ```bash
 # Core test dependencies
@@ -155,12 +155,6 @@ npx playwright install
 
 And configure Vitest in `vitest.config.ts` with browser mode enabled. The setup task itself is a scaffolding task — it does not need its own tests.
 
-**TDD exceptions (these task types do NOT need tests):**
-- Configuration files (vite.config, tsconfig, eslint, prettier, env files)
-- Project scaffolding (package.json scripts, directory structure, index.html)
-- Boilerplate setup (router setup, app entry point wiring, plugin registration)
-- Markdown documentation or README files
-
 ## Self-Review
 
 After writing the complete plan, look at the spec with fresh eyes and check the plan against it. This is a checklist you run yourself — not a subagent dispatch.
@@ -170,12 +164,6 @@ After writing the complete plan, look at the spec with fresh eyes and check the 
 **2. Placeholder scan:** Search your plan for red flags — any of the patterns from the "No Placeholders" section above. Fix them.
 
 **3. Type consistency:** Do the types, method signatures, and property names you used in later tasks match what you defined in earlier tasks? A function called `clearLayers()` in Task 3 but `clearFullLayers()` in Task 7 is a bug.
-
-**4. TDD compliance (Vue-specific):** For each feature task (not config/scaffold/doc tasks):
-- Does the task specify a `Test:` file path in the Files section?
-- Does it include the 5 TDD steps: Write test → Run to fail → Implement → Run to pass → Commit?
-- Does the test use the correct mode? (browser mode for SFCs, node mode for composables/stores/utils)
-- If any feature task is missing test steps, add them now. The test code must be as concrete as the implementation code — no placeholder tests.
 
 If you find issues, fix them inline. No need to re-review — just fix and move on. If you find a spec requirement with no task, add the task.
 

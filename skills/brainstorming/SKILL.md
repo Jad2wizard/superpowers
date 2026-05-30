@@ -25,9 +25,9 @@ Use the TaskCreate tool to create exactly these tasks and complete them in order
 2. **Offer visual companion** (if the project involves any visual interface — web, mobile, dashboard, UI components) — this is its own message, not combined with a clarifying question. See the Visual Companion section below. Step 6 (Generate UI Mockups) depends on the companion being active. If you skip this step, mockup generation in Step 6 will be significantly degraded.
 3. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
 4. **Propose 2-3 approaches in the browser** — Write each approach as HTML content to the visual companion. Show architecture diagrams and trade-off comparisons side-by-side. Do NOT use terminal text for this step if the companion is running.
-5. **Present design in the browser** — Write each design section as HTML to the visual companion. Architecture, component tree, data flow — present all of them visually. Get user approval after each section. Do NOT present design sections in terminal text when the companion is running.
+5. **Present design in the browser** — Write each design section as HTML to the visual companion. Architecture, component tree, data flow — present all of them visually. Get user approval after each section. After all sections are confirmed, present a summary table and explicitly ask the user to confirm the overall design. WAIT for their response — do NOT proceed to Step 6 until they explicitly approve. Do NOT present design sections in terminal text when the companion is running.
 6. **Generate UI Mockups** (visual/UI projects only) — invoke ui-ux-pro-max, generate HTML design tokens and screen mockups. Skip for non-visual projects. See Step 6 section below.
-7. **Write design doc** — save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` and commit
+7. **Write design doc** — save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` and commit. If Step 6 was executed, MUST include the UI Design chapter with mockup reference (see format below).
 8. **Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
 9. **User reviews written spec** — ask user to review the spec file before proceeding
 10. **Transition to implementation** — invoke writing-plans skill to create implementation plan
@@ -98,6 +98,7 @@ digraph brainstorming {
 - Ask after each section whether it looks right so far
 - Cover: architecture, components, data flow, error handling, testing
 - Be ready to go back and clarify if something doesn't make sense
+- **After all sections are individually confirmed:** push a summary table of all design decisions to the visual companion. Then present it and explicitly ASK the user: "All design sections are confirmed. Does the overall design look correct, or would you like to revise anything?" **WAIT for the user's explicit yes/no response before proceeding to Step 6.** Do NOT assume approval just because individual sections were confirmed.
 
 **Design for isolation and clarity:**
 
@@ -123,21 +124,17 @@ digraph brainstorming {
 
 **UI Design chapter — mockup reference (required when Step 6 was executed):**
 
-When UI mockups were generated (Step 6), the design doc's UI Design chapter MUST include an authoritative reference to the combined mockup file:
+When UI mockups were generated (Step 6), the design doc MUST include a UI Design chapter with an authoritative reference to the mockup file. Use this exact format:
 
 ```markdown
 ## UI Design
 
-**权威参考文件**: `.superpowers/brainstorm/<session-id>/content/ui-all-screens.html`
+**权威 mockup 文件**: `.superpowers/brainstorm/<session-id>/content/ui-all-screens.html`
 
-所有前端组件的样式、布局、交互必须严格遵循此文件中的设计。该文件包含以下完整界面的像素级 mockup：
-
-- [列出每个 screen 的名称和对应文件，如 ui-02-homepage.html, ui-03-dashboard.html]
+前端模块和组件的样式实现必须严格遵循此 mockup 文件中的设计。
 ```
 
-Replace `<session-id>` with the actual session directory name (the timestamp-based directory under `.superpowers/brainstorm/`). This path is obtained from `screen_dir` returned when the visual companion server started.
-
-The authoritative reference ensures that writing-plans and implementer subagents have a concrete, pixel-level design target. Every frontend task's acceptance criteria should reference specific screens from this file.
+Replace `<session-id>` with the actual session directory name from `screen_dir`.
 
 **Spec Self-Review:**
 After writing the spec document, look at it with fresh eyes:
@@ -146,6 +143,7 @@ After writing the spec document, look at it with fresh eyes:
 2. **Internal consistency:** Do any sections contradict each other? Does the architecture match the feature descriptions?
 3. **Scope check:** Is this focused enough for a single implementation plan, or does it need decomposition?
 4. **Ambiguity check:** Could any requirement be interpreted two different ways? If so, pick one and make it explicit.
+5. **Mockup reference check (required when Step 6 was executed):** Does the spec contain a UI Design chapter referencing the mockup file? Does it state that frontend styles MUST strictly follow the mockup? If not, add it.
 
 Fix any issues inline. No need to re-review — just fix and move on.
 
@@ -181,7 +179,7 @@ A browser-based companion for showing mockups, diagrams, and visual options duri
 
 **When the visual companion is running:**
 
-- **Step 3 (Clarifying questions)**: Terminal is fine for text questions.
+- **Step 3 (Clarifying questions)**: Push each multiple-choice question and its options to the visual companion. The options persist visually and the user can click to select, which records structured events. For open-ended questions without discrete options, terminal is fine.
 - **Step 4 (Propose approaches)**: Use the browser to show side-by-side visual comparisons of each approach. Architecture diagrams, component layouts, and trade-off tables are ALL visual content.
 - **Step 5 (Present design)**: EVERY design section MUST be presented in the browser. Write HTML content for each section as you present it. Architecture, component tree, data flow, error handling — push all of them to the visual companion. Do not present design sections in plain terminal text when the companion is available.
 - **Step 6 (Generate UI Mockups)**: All mockup files go to the visual companion's screen_dir.
@@ -225,13 +223,17 @@ python3 "$SCRIPT" "<query>" --domain ux
 
 Write `ui-01-tokens.html` to the visual companion's `screen_dir` (or `docs/superpowers/mockups/` if no companion is running). Content: color swatches with hex values, typography samples (heading/body/code), spacing scale — all using actual token values from the 6c output.
 
+**Note:** This is an intermediate file. The visual companion only serves the newest file, so the user will not see this page directly in the browser once later files are written. Its content will be inlined into `ui-all-screens.html` in Step 6f.
+
 ### 6e. Generate screen mockups
 
 For each screen/page identified in the approved design (Step 5), generate an HTML mockup file using the visual companion's mockup CSS classes. Use design tokens from 6d for colors, typography, and spacing. Name files sequentially: `ui-02-<name>.html`, `ui-03-<name>.html`, etc. Generate all screens in one pass.
 
 ### 6f. Generate combined view
 
-Write `ui-all-screens.html` combining all mockups with section headers and navigation. Present to user via the visual companion URL.
+Write `ui-all-screens.html` combining all mockups into **one self-contained file** — all content MUST be inline. The visual companion only serves a single file (the newest one), so no iframes, no `<link>` to other files, no `src` references to sibling HTML files. Every token, every mockup screen, every section must be embedded directly in this file.
+
+Structure the file with clear section headers and navigation (anchor links within the page). Present to user via the visual companion URL. This is the file the user will actually see and interact with.
 
 ### 6g. User approval
 

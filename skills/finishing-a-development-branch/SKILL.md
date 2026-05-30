@@ -51,7 +51,7 @@ This determines which menu to show and how cleanup works:
 | State | Menu | Cleanup |
 |-------|------|---------|
 | `GIT_DIR == GIT_COMMON` (normal repo) | Standard 4 options | No worktree to clean up |
-| `GIT_DIR != GIT_COMMON`, named branch | Standard 4 options | Provenance-based (see Step 6) |
+| `GIT_DIR != GIT_COMMON`, named branch | Standard 4 options | Provenance-based (see Step 7) |
 | `GIT_DIR != GIT_COMMON`, detached HEAD | Reduced 3 options (no merge) | No cleanup (externally managed) |
 
 ### Step 3: Determine Base Branch
@@ -109,14 +109,16 @@ git merge <feature-branch>
 # Verify tests on merged result
 <test command>
 
-# Only after merge succeeds: cleanup worktree (Step 6), then delete branch
+# Only after merge succeeds: cleanup worktree (Step 7), then delete branch
 ```
 
-Then: Cleanup worktree (Step 6), then delete branch:
+Then: Cleanup worktree (Step 7), then delete branch:
 
 ```bash
 git branch -d <feature-branch>
 ```
+
+**→ Continue to Step 6.**
 
 #### Option 2: Push and Create PR
 
@@ -137,11 +139,15 @@ EOF
 
 **Do NOT clean up worktree** — user needs it alive to iterate on PR feedback.
 
+**→ Continue to Step 6.**
+
 #### Option 3: Keep As-Is
 
 Report: "Keeping branch <name>. Worktree preserved at <path>."
 
 **Don't cleanup worktree.**
+
+**→ Continue to Step 6.**
 
 #### Option 4: Discard
 
@@ -163,20 +169,28 @@ MAIN_ROOT=$(git -C "$(git rev-parse --git-common-dir)/.." rev-parse --show-tople
 cd "$MAIN_ROOT"
 ```
 
-Then: Cleanup worktree (Step 6), then force-delete branch:
+Then: Cleanup worktree (Step 7), then force-delete branch:
 ```bash
 git branch -D <feature-branch>
 ```
 
 ### Step 6: Offer E2E Testing (Vue Projects)
 
-After the user's chosen option completes (and before cleanup for Options 1/4), offer Playwright E2E validation for visual Vue projects:
+For Vue projects with a visual interface (any project that has a browser-based UI), after executing the user's chosen option (except Option 4 Discard), present this structured choice:
 
-> "Would you like me to run Playwright E2E tests against the project's main user flows? This validates the full application in a real browser."
+```
+Done. What would you like to do next?
 
-If the user says yes, invoke `superpowers:e2e-main-flow-testing`. Let it complete fully before proceeding to cleanup.
+1. Run E2E tests against main user flows
+2. Done for now
+```
 
-Skip this offer for Option 4 (Discard).
+**Present exactly these 2 options.** Don't add explanation or alternatives.
+
+- If the user chooses 1: invoke `superpowers:e2e-main-flow-testing`. Let it complete fully, then proceed to cleanup.
+- If the user chooses 2: skip E2E, proceed to cleanup.
+
+**This step is mandatory for Options 1, 2, and 3.** Only skip entirely for Option 4 (Discard).
 
 ### Step 7: Cleanup Workspace
 
