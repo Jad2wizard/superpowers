@@ -7,9 +7,9 @@ description: Use when the human partner reports a manually discovered bug and wa
 
 ## Overview
 
-Convert a manually discovered bug into a Playwright `@playwright/test` reproduction. Run it in a real browser, capture structured failure evidence (evidence.json + page.html + page.txt + screenshot), confirm RED, and hand off to systematic-debugging.
+**Input:** manual bug report. **Output:** RED reproduction script + structured evidence → handoff to systematic-debugging.
 
-**Core principle:** No automated reproduction evidence, no debugging. Evidence must be comprehensive, structured, and directly consumable by Claude Code (text-based).
+This skill produces a FAILING test with evidence. It does NOT fix bugs or verify fixes.
 
 ## When to Use
 
@@ -83,10 +83,10 @@ test('bug: <short description>', async ({ page, evidence }) => {
 - Custom context via `evidence.custom`
 
 **On failure, evidence is exported to `e2e/output/`:**
-- `evidence.json` — structured summary with all collected events and custom context
-- `page.html` — current page HTML (`page.content()`)
-- `page.txt` — visible text content (`body.innerText`) — most useful for understanding the bug
-- `failure.png` — full-page screenshot (for human review, not agent consumption)
+- `<test-name>-evidence.json` — structured summary with all collected events and custom context
+- `<test-name>-page.html` — current page HTML (`page.content()`)
+- `<test-name>-page.txt` — visible text content (`body.innerText`) — most useful for understanding the bug
+- `<test-name>-failure.png` — full-page screenshot (for human review, not agent consumption)
 
 #### Test Writing Guidelines
 
@@ -125,21 +125,13 @@ npx playwright test e2e/bug-<short-description>.spec.ts --reporter=list
 
 Result judgment:
 
-```
-FAIL and the error matches the bug description?
-  → RED confirmed. Proceed to Step 4.
-
-FAIL but the error doesn't match the bug description?
-  → The test has a problem. Check the steps and assertions, fix the test, re-run.
-
-PASS (test passes)?
-  → The test didn't catch the bug. Check url, route, trigger conditions.
-    The bug may need more precise reproduction steps.
-```
+- **FAIL matches bug description** → RED confirmed. Proceed to Step 4.
+- **FAIL doesn't match** → fix the test steps or assertions, re-run.
+- **PASS** → test didn't catch the bug. Re-check route, trigger conditions, or ask for more precise steps.
 
 ### Step 4: Hand Off to systematic-debugging
 
-After RED is confirmed, invoke `superpowers:systematic-debugging` with:
+Invoke `superpowers:systematic-debugging` with:
 
 ```
 - Test file: e2e/bug-<description>.spec.ts
@@ -147,34 +139,17 @@ After RED is confirmed, invoke `superpowers:systematic-debugging` with:
 - Failure evidence: e2e/output/<test-name>-evidence.json
 ```
 
-To read the evidence:
+Read evidence before handing off:
 ```bash
-cat e2e/output/<test-name>-evidence.json
-```
-
-The evidence JSON contains: error message + stack, URL, all console messages, console error stacks, page errors, runtime errors, request failures, HTTP errors, custom context.
-
-Also read `e2e/output/<test-name>-page.txt` for the visible text at failure point — often more useful for understanding what went wrong than raw HTML.
-
-**Phase 2 (pattern analysis) and Phase 3 (hypothesis verification) in systematic-debugging must run fully.** The reproduction script producing a failure ≠ the root cause has been found. Seeing an error stack and proposing a fix = skipping Phase 2 and Phase 3 — this is a violation.
-
-## Post-Fix Verification
-
-After the TDD GREEN fix is complete, re-run the reproduction test to confirm PASS:
-
-```bash
-npx playwright test e2e/bug-<description>.spec.ts --reporter=list
-# Should output: 1 passed
+cat e2e/output/<test-name>-evidence.json      # structured summary
+cat e2e/output/<test-name>-page.txt            # visible text at failure — most useful for context
 ```
 
 ## Red Flags
 
 | Thought | Reality |
 |---------|---------|
-| "The bug is obvious, just fix it directly" | Without reproduction evidence, there's no proof. |
-| "Manual reproduction is enough" | Manual depends on memory. A script is permanent evidence. |
 | "I'll fix first, add the test later" | No failing reproduction = no fix target. |
-| "Writing a script takes too long" | Manually reproducing N times = value of one script. The script lasts forever. |
-| "I'll read the screenshot for clues" | Screenshots are for humans. Use `page.txt` and `evidence.json` instead. |
+| "No RED is fine, I understand the bug" | No RED = no evidence. No evidence = no debugging. |
 | "I'll use CSS selectors, they're quicker" | CSS selectors break on refactoring. Use `getByRole`, `getByLabel`, or `getByTestId`. |
 | "I'll add `waitForTimeout` to make the bug repro" | `waitForTimeout` masks timing issues and makes reproductions flaky. Use web-first assertions. |

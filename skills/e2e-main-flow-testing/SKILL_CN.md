@@ -15,11 +15,7 @@ description: 在 Vue 项目主流程开发完成后使用 — 通过 Playwright 
 
 ## 何时使用
 
-在 `superpowers:finishing-a-development-branch` 成功完成后。向用户提议：
-
-> "实现已完成，所有测试通过。是否需要我用 Playwright 对项目的主要用户流程运行端到端测试？这会在真实浏览器中验证完整应用，捕获单元测试无法发现的问题。"
-
-等待用户回复。如果用户拒绝，到此为止。
+在 `superpowers:finishing-a-development-branch` 成功完成且用户已同意运行 E2E 验证后。
 
 ## 前提
 
@@ -42,6 +38,7 @@ export default defineConfig({
   reporter: [['list'], ['json', { outputFile: 'e2e/output/report.json' }]],
   use: {
     baseURL: 'http://localhost:5173', // 根据项目的 dev server 调整
+    headless: false,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
@@ -54,6 +51,7 @@ export default defineConfig({
 ```
 
 配置说明：
+- `headless: false` — 始终以可见浏览器窗口运行
 - `trace: 'retain-on-failure'` — Playwright trace 供人类调试，agent 不直接消费
 - `screenshot: 'only-on-failure'` — Playwright 自身截图（供人类查看）
 - 不开启 video — 不需要
@@ -81,7 +79,27 @@ export default defineConfig({
 
 迭代直到用户确认列表。
 
-### 第二步：配置证据收集并编写测试
+### 第二步：验证构建和 Dev Server
+
+在编写 E2E 测试之前，先确认项目能成功构建且 dev server 能正常启动。构建失败可能掩盖影响测试正确性的问题 — 在编写测试之前先修复。
+
+```bash
+# 1. 构建项目
+npm run build
+
+# 2. 启动 dev server 并验证响应
+npm run dev &
+DEV_PID=$!
+sleep 3
+curl -s -o /dev/null -w "%{http_code}" http://localhost:5173 | grep -q "200" && echo "Dev server OK" || echo "Dev server FAILED"
+
+# 3. 验证通过后关闭测试服务器（E2E 使用 Playwright 的 webServer 配置）
+kill $DEV_PID 2>/dev/null
+```
+
+如果构建失败或 dev server 无响应，先修复问题再进入第三步。不要对未构建成功的代码编写测试。
+
+### 第三步：配置证据收集并编写测试
 
 将本技能目录下的 `evidence-fixture.ts` 复制到项目的 `e2e/evidence-fixture.ts`。该 fixture 自动处理所有证据收集 — 你不需要编写任何收集代码。
 
@@ -114,10 +132,10 @@ test.describe('主流程: <流程名称>', () => {
 - 自定义上下文通过 `evidence.custom` — 标注当前业务步骤
 
 **失败时（包括 timedOut 和 interrupted），fixture 导出到 `e2e/output/`：**
-- `evidence.json` — 结构化汇总：错误 + 调用栈、URL、所有收集的事件、自定义上下文
-- `page.html` — 当前页面 HTML（`page.content()`）
-- `page.txt` — 可见文本内容（`body.innerText`）— 最有助于理解用户看到了什么
-- `failure.png` — 全页截图（供人类查看，agent 不消费）
+- `<test-name>-evidence.json` — 结构化汇总：错误 + 调用栈、URL、所有收集的事件、自定义上下文
+- `<test-name>-page.html` — 当前页面 HTML（`page.content()`）
+- `<test-name>-page.txt` — 可见文本内容（`body.innerText`）— 最有助于理解用户看到了什么
+- `<test-name>-failure.png` — 全页截图（供人类查看，agent 不消费）
 
 **通过时不写任何文件。**
 
@@ -144,26 +162,6 @@ test.describe('主流程: <流程名称>', () => {
 - 一个测试对应一个用户流程 — 自包含，无相互依赖
 - 使用 `evidence.custom.step` 标注当前业务步骤 — 失败时会出现在证据中
 - 每个测试从头开始导航 — 不依赖前一个测试的状态
-
-### 第三步：验证构建和 Dev Server
-
-在运行 E2E 测试之前，先确认项目能成功构建且 dev server 能正常启动。跳过这一步会浪费大量时间在排查因构建失败导致的测试失败上。
-
-```bash
-# 1. 构建项目
-npm run build
-
-# 2. 启动 dev server 并验证响应
-npm run dev &
-DEV_PID=$!
-sleep 3
-curl -s -o /dev/null -w "%{http_code}" http://localhost:5173 | grep -q "200" && echo "Dev server OK" || echo "Dev server FAILED"
-
-# 3. 验证通过后关闭测试服务器（E2E 使用 Playwright 的 webServer 配置）
-kill $DEV_PID 2>/dev/null
-```
-
-如果构建失败或 dev server 无响应，先修复问题再进入第四步。不要对未构建成功的代码运行 E2E 测试。
 
 ### 第四步：清理输出并运行测试
 
@@ -198,7 +196,7 @@ npx playwright test e2e/ --reporter=list --max-failures=1
 
 3. 仅在需要检查特定 DOM 结构时读取 `page.html`。
 
-4. 直接调用 `superpowers:systematic-debugging`，传入证据。evidence JSON 已包含失败复现 — 无需单独走 `manual-bug-to-test` 流程。
+4. **强制要求：** 调用 `superpowers:systematic-debugging`，传入证据。这不是可选项 — 每个失败必须在应用任何修复之前经过 systematic-debugging 进行根因调查。evidence JSON 已包含失败复现 — 无需单独走 `manual-bug-to-test` 流程。任何情况下都不允许跳过此步骤。
 
 5. 修复后从头重新运行所有测试：
    ```bash
@@ -240,22 +238,11 @@ npx playwright test e2e/ --reporter=list --max-failures=1
 > - 测试目录：`e2e/`
 > - <N> 个流程已验证，测试过程中发现并修复了 <M> 个问题"
 
-### 第七步：清理并提交
+### 第七步：清理
 
 ```bash
-# 清理证据目录（必须执行）
 rm -rf e2e/output/
-
-# 清理重试计数器（如果存在）
 rm -f e2e/.retry-tracker.json
-
-# 确保临时产物被 gitignore
-echo 'e2e/output/' >> .gitignore
-echo 'e2e/.retry-tracker.json' >> .gitignore
-
-# 提交测试文件、fixture 和配置
-git add e2e/ playwright.config.ts .gitignore
-git commit -m "test(e2e): add main flow E2E tests with Playwright"
 ```
 
 **清理是强制的** — 除非某个测试通过三振规则上交给了人类。此时 `e2e/output/`、`test-results/`（trace）和 `e2e/.retry-tracker.json` 保留，供人类调查。
@@ -265,15 +252,10 @@ git commit -m "test(e2e): add main flow E2E tests with Playwright"
 | 想法 | 现实 |
 |------|------|
 | "单元测试通过了，E2E 多余" | 单元测试发现不了集成问题。真实浏览器能发现真实问题。 |
-| "我直接快速修一下，不用 systematic-debugging" | 每个失败都值得做根因调查。证据已经收集好了 — 用它。 |
+| "我快速修一下，不用 systematic-debugging" | 每个失败都必须经过 systematic-debugging。未做根因调查不得修复。 |
 | "我一次修多个失败" | 一个一个来。每个修复验证后再处理下一个。 |
-| "这些失败大概是同一个根因" | 不要假设。独立调查每一个。 |
-| "花太长时间了，收尾吧" | 设计时就是长时间运行任务。主流程必须跑通。Token 预算已批准。 |
-| "再试一次，第 4 次可能就修好了" | Fixture 在 3 次失败后阻止重新运行。代码强制执行，不是靠指导。 |
-| "我看看截图找线索" | 截图是给人看的。用 `page.txt` 和 `evidence.json` 代替。 |
-| "跳过清理步骤" | `e2e/output/` 是临时文件。留着会污染仓库。 |
-| "用 CSS 选择器，更简单" | CSS 选择器在重构时会断裂。用 `getByRole`、`getByLabel` 或 `getByTestId`。 |
 | "加个 waitForTimeout 解决不稳定测试" | 任意等待掩盖了时机问题。用 `waitForResponse` 或 web-first 断言。 |
+| "再试一次，第 4 次可能就修好了" | Fixture 在 3 次失败后阻止重新运行。代码强制执行，不是靠指导。 |
 
 ## 集成
 

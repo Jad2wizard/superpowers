@@ -7,9 +7,9 @@ description: 当人类伙伴报告了一个手动发现的 bug，希望将其转
 
 ## 概述
 
-将手动发现的 bug 转化为 Playwright `@playwright/test` 复现测试。在真实浏览器中跑通，捕获结构化失败证据（evidence.json + page.html + page.txt + 截图），确认 RED 后交接给 systematic-debugging。
+**输入：** 手动 bug 报告。**输出：** RED 复现脚本 + 结构化证据 → 交接给 systematic-debugging。
 
-**核心原则：** 没有自动化复现证据，不进入调试。证据必须全面、结构化、Claude Code 可直接消费（基于文本）。
+此技能产出的是失败测试和证据。不负责修复 bug，不负责验证修复。
 
 ## 何时使用
 
@@ -83,10 +83,10 @@ test('bug: <简短描述>', async ({ page, evidence }) => {
 - 自定义上下文通过 `evidence.custom`
 
 **失败时，证据导出到 `e2e/output/`：**
-- `evidence.json` — 结构化汇总，包含所有收集的事件和自定义上下文
-- `page.html` — 当前页面 HTML（`page.content()`）
-- `page.txt` — 可见文本内容（`body.innerText`）— 最有助于理解 bug
-- `failure.png` — 全页截图（供人类查看，agent 不消费）
+- `<test-name>-evidence.json` — 结构化汇总，包含所有收集的事件和自定义上下文
+- `<test-name>-page.html` — 当前页面 HTML（`page.content()`）
+- `<test-name>-page.txt` — 可见文本内容（`body.innerText`）— 最有助于理解 bug
+- `<test-name>-failure.png` — 全页截图（供人类查看，agent 不消费）
 
 #### 测试编写指南
 
@@ -125,21 +125,13 @@ npx playwright test e2e/bug-<简短描述>.spec.ts --reporter=list
 
 结果判断：
 
-```
-FAIL，错误信息与 bug 描述一致？
-  → RED 确认。进入第四步。
-
-FAIL，错误信息与 bug 描述不一致？
-  → 测试有问题。检查操作步骤和断言，修正后重新运行。
-
-PASS（测试通过）？
-  → 测试没抓到 bug。检查 url、路由、触发条件。
-    bug 可能需要更精确的复现步骤。
-```
+- **FAIL 与 bug 描述一致** → RED 确认。进入第四步。
+- **FAIL 与 bug 描述不一致** → 修正测试步骤或断言，重新运行。
+- **PASS** → 测试没抓到 bug。重新检查路由、触发条件，或要求更精确的步骤。
 
 ### 第四步：交接给 systematic-debugging
 
-RED 确认后，调用 `superpowers:systematic-debugging`，传递：
+调用 `superpowers:systematic-debugging`，传递：
 
 ```
 - 测试文件：e2e/bug-<描述>.spec.ts
@@ -147,34 +139,17 @@ RED 确认后，调用 `superpowers:systematic-debugging`，传递：
 - 失败证据：e2e/output/<test-name>-evidence.json
 ```
 
-读取证据：
+交接前读取证据：
 ```bash
-cat e2e/output/<test-name>-evidence.json
-```
-
-evidence JSON 包含：错误信息 + 调用栈、URL、所有控制台消息、console error 调用栈、页面错误、运行时错误、请求失败、HTTP 错误、自定义上下文。
-
-同时读取 `e2e/output/<test-name>-page.txt` 获取失败时的可见文本 —— 通常比原始 HTML 更有助于理解哪里出了问题。
-
-**Phase 2（模式分析）和 Phase 3（假设验证）必须完整执行。** 复现脚本跑出失败 ≠ 找到了根因。看到错误栈就提修复 = 跳过了 Phase 2 和 Phase 3，这是违规。
-
-## 修复后验证
-
-TDD GREEN 修复完成后，重新跑复现测试确认 PASS：
-
-```bash
-npx playwright test e2e/bug-<描述>.spec.ts --reporter=list
-# 应输出：1 passed
+cat e2e/output/<test-name>-evidence.json      # 结构化汇总
+cat e2e/output/<test-name>-page.txt            # 失败时的可见文本 — 最有用
 ```
 
 ## 红旗
 
 | 想法 | 现实 |
 |------|------|
-| "这个 bug 很明显，直接修" | 没有复现证据就没有证明。 |
-| "手动复现够了" | 手动靠记忆。脚本是永久证据。 |
 | "我先修，测试后补" | 没有失败复现就没有修复目标。 |
-| "写脚本太慢" | 手动复现 N 次 = 一个脚本的值。脚本跑一辈子。 |
-| "我看看截图找线索" | 截图是给人看的。用 `page.txt` 和 `evidence.json` 代替。 |
+| "没 RED 也没关系，我理解这个 bug" | 没有 RED 就没有证据。没有证据就不进入调试。 |
 | "用 CSS 选择器，更快" | CSS 选择器在重构时会断裂。用 `getByRole`、`getByLabel` 或 `getByTestId`。 |
 | "加个 waitForTimeout 让 bug 复现" | `waitForTimeout` 掩盖了时机问题，让复现不稳定。用 web-first 断言。 |

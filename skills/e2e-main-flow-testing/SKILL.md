@@ -15,11 +15,7 @@ After implementation is complete and all unit/component tests pass, validate the
 
 ## When to Use
 
-After `superpowers:finishing-a-development-branch` completes successfully. Offer this to the user:
-
-> "Implementation is complete and all tests pass. Would you like me to run Playwright E2E tests against the project's main user flows? This validates the full application in a real browser and catches issues that unit tests can miss."
-
-Wait for the user's response. If they decline, stop here.
+After `superpowers:finishing-a-development-branch` completes successfully and the user has agreed to run E2E validation.
 
 ## Prerequisites
 
@@ -42,6 +38,7 @@ export default defineConfig({
   reporter: [['list'], ['json', { outputFile: 'e2e/output/report.json' }]],
   use: {
     baseURL: 'http://localhost:5173', // adjust to project's dev server
+    headless: false,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
@@ -54,6 +51,7 @@ export default defineConfig({
 ```
 
 Config notes:
+- `headless: false` — always run with a visible browser window
 - `trace: 'retain-on-failure'` — Playwright trace for human debugging, not agent consumption
 - `screenshot: 'only-on-failure'` — Playwright's own screenshots (for humans)
 - No video — not needed
@@ -81,7 +79,27 @@ Present the identified flows to the user for confirmation:
 
 Iterate until the user confirms the list.
 
-### Step 2: Set Up Evidence Collection and Write Tests
+### Step 2: Verify Build and Dev Server
+
+Before writing E2E tests, confirm the project builds and the dev server starts cleanly. A failing build may mask issues that affect test correctness — fix it before writing tests.
+
+```bash
+# 1. Build the project
+npm run build
+
+# 2. Start dev server in background and verify it responds
+npm run dev &
+DEV_PID=$!
+sleep 3
+curl -s -o /dev/null -w "%{http_code}" http://localhost:5173 | grep -q "200" && echo "Dev server OK" || echo "Dev server FAILED"
+
+# 3. If verification passes, kill the test server (E2E uses Playwright's webServer config)
+kill $DEV_PID 2>/dev/null
+```
+
+If the build fails or the dev server doesn't respond, fix the issue before proceeding to Step 3. Do NOT write tests against a broken build.
+
+### Step 3: Set Up Evidence Collection and Write Tests
 
 Copy `evidence-fixture.ts` from this skill directory to `e2e/evidence-fixture.ts` in the project. This fixture handles all evidence collection automatically — you do not need to write any collection code yourself.
 
@@ -114,10 +132,10 @@ test.describe('Main Flow: <flow name>', () => {
 - Custom context via `evidence.custom` — annotate the current business step
 
 **On failure (including timedOut and interrupted), the fixture exports to `e2e/output/`:**
-- `evidence.json` — structured summary: error + stack, URL, all collected events, custom context
-- `page.html` — current page HTML (`page.content()`)
-- `page.txt` — visible text content (`body.innerText`) — most useful for understanding what the user saw
-- `failure.png` — full-page screenshot (for human review, not agent consumption)
+- `<test-name>-evidence.json` — structured summary: error + stack, URL, all collected events, custom context
+- `<test-name>-page.html` — current page HTML (`page.content()`)
+- `<test-name>-page.txt` — visible text content (`body.innerText`) — most useful for understanding what the user saw
+- `<test-name>-failure.png` — full-page screenshot (for human review, not agent consumption)
 
 **On pass, no files are written.**
 
@@ -144,26 +162,6 @@ test.describe('Main Flow: <flow name>', () => {
 - One test per user flow — self-contained, no interdependencies
 - Use `evidence.custom.step` to annotate the current business step — this appears in evidence on failure
 - Each test navigates from scratch — no relying on state from previous tests
-
-### Step 3: Verify Build and Dev Server
-
-Before running E2E tests, confirm the project builds and the dev server starts cleanly. Skipping this step wastes time debugging test failures caused by broken builds.
-
-```bash
-# 1. Build the project
-npm run build
-
-# 2. Start dev server in background and verify it responds
-npm run dev &
-DEV_PID=$!
-sleep 3
-curl -s -o /dev/null -w "%{http_code}" http://localhost:5173 | grep -q "200" && echo "Dev server OK" || echo "Dev server FAILED"
-
-# 3. If verification passes, kill the test server (E2E uses Playwright's webServer config)
-kill $DEV_PID 2>/dev/null
-```
-
-If the build fails or the dev server doesn't respond, fix the issue before proceeding to Step 4. Do NOT run E2E tests against a broken build.
 
 ### Step 4: Clean Output and Run Tests
 
@@ -198,7 +196,7 @@ Track a retry counter per failing test. If the **same test** fails **3 times** a
 
 3. Read `page.html` only if you need to inspect specific DOM structure.
 
-4. Invoke `superpowers:systematic-debugging` directly with the evidence. The evidence JSON already contains the failure reproduction — no need for a separate `manual-bug-to-test` step.
+4. **MANDATORY:** Invoke `superpowers:systematic-debugging` with the evidence. This is NOT optional — every failure MUST go through systematic-debugging for root-cause investigation before applying any fix. The evidence JSON already contains the failure reproduction — no need for a separate `manual-bug-to-test` step. Do NOT skip this step under any circumstance.
 
 5. After the fix, re-run ALL tests from the beginning:
    ```bash
@@ -240,22 +238,11 @@ When all main flow tests pass:
 > - Test directory: `e2e/`
 > - <N> flows validated, <M> issues found and fixed during testing"
 
-### Step 7: Cleanup and Commit
+### Step 7: Cleanup
 
 ```bash
-# Clean evidence directory (mandatory)
 rm -rf e2e/output/
-
-# Clean retry tracker (if present)
 rm -f e2e/.retry-tracker.json
-
-# Ensure ephemeral artifacts are gitignored
-echo 'e2e/output/' >> .gitignore
-echo 'e2e/.retry-tracker.json' >> .gitignore
-
-# Commit test files, fixture, and config
-git add e2e/ playwright.config.ts .gitignore
-git commit -m "test(e2e): add main flow E2E tests with Playwright"
 ```
 
 **Cleanup is mandatory** — unless a test was escalated to the human via the 3-strike rule. In that case, `e2e/output/`, `test-results/` (trace), and `e2e/.retry-tracker.json` are preserved for the human to investigate.
@@ -264,16 +251,11 @@ git commit -m "test(e2e): add main flow E2E tests with Playwright"
 
 | Thought | Reality |
 |---------|---------|
-| "The unit tests pass, E2E is overkill" | Unit tests don't catch integration issues. Real browser catches real problems. |
-| "I'll fix this quickly without systematic-debugging" | Every failure deserves a root-cause investigation. The evidence is already collected — use it. |
+| "Unit tests pass, E2E is overkill" | Unit tests don't catch integration issues. Real browser catches real problems. |
+| "I'll fix this without systematic-debugging" | Every failure goes through systematic-debugging. No fix without root-cause investigation. |
 | "Let me fix multiple failures at once" | One at a time. Each fix gets verified before the next. |
-| "These failures are probably the same root cause" | Don't assume. Investigate each independently. |
-| "This is taking too long, let me wrap up" | Long-running by design. Main flows MUST work. Token budget is approved. |
-| "I'll keep trying, the 4th attempt might work" | The fixture blocks re-runs after 3 failures. It's enforced in code, not guidance. |
-| "I'll read the screenshot for clues" | Screenshots are for humans. Use `page.txt` and `evidence.json` instead. |
-| "I'll skip the cleanup step" | `e2e/output/` is ephemeral. Leaving it around pollutes the repo. |
-| "I'll use CSS selectors, they're easier" | CSS selectors break on refactoring. Use `getByRole`, `getByLabel`, or `getByTestId`. |
 | "I'll add `waitForTimeout` to fix flakiness" | Arbitrary waits mask timing issues. Use `waitForResponse` or web-first assertions. |
+| "I'll keep trying, the 4th attempt might work" | The fixture blocks re-runs after 3 failures. It's code-enforced, not guidance. |
 
 ## Integration
 
