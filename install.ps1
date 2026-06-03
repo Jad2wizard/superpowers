@@ -99,7 +99,10 @@ if (-not $skipPlaywright) {
             if ((Test-Path $zipPath) -and ((Get-Item $zipPath).Length -gt 1048576)) {
                 Write-Host "    Extracting to $installDir..."
                 New-Item -ItemType Directory -Path $installDir -Force | Out-Null
+                $prevProgressPref = $ProgressPreference
+                $ProgressPreference = 'SilentlyContinue'
                 Expand-Archive -Path $zipPath -DestinationPath $installDir -Force
+                $ProgressPreference = $prevProgressPref
                 Remove-Item $zipPath
                 Write-Host "    Chromium browser installed (from GitHub Release)."
             } else {
