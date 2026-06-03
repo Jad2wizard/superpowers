@@ -81,9 +81,13 @@ digraph brainstorming {
 - Before asking detailed questions, assess scope: if the request describes multiple independent subsystems (e.g., "build a platform with chat, file storage, billing, and analytics"), flag this immediately. Don't spend questions refining details of a project that needs to be decomposed first.
 - If the project is too large for a single spec, help the user decompose into sub-projects: what are the independent pieces, how do they relate, what order should they be built? Then brainstorm the first sub-project through the normal design flow. Each sub-project gets its own spec → plan → implementation cycle.
 - For appropriately-scoped projects, ask questions one at a time to refine the idea
-- Prefer multiple choice questions when possible, but open-ended is fine too
-- Only one question per message - if a topic needs more exploration, break it into multiple questions
-- Focus on understanding: purpose, constraints, success criteria
+- **Every question must include your recommended answer** — the user confirms or corrects, never writes from scratch
+- Prefer multiple choice when possible; when open-ended is necessary, still give your best guess and ask the user to refine it
+- Only one question per message — but one question ≠ one topic. Walk down each branch of the design tree before moving on:
+  - When the user answers, probe one layer deeper: "why is that important?" or "what happens if that fails?"
+  - When the user uses a vague term ("account", "user", "data"), propose a precise definition immediately and ask if it's correct
+  - When a domain relationship is described, stress-test it with a concrete edge-case scenario
+- Don't move to the next topic until you've exhausted the current one. A single design topic may need 3-5 follow-up questions before it's truly resolved
 
 **Exploring approaches:**
 

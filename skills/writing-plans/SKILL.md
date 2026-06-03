@@ -136,8 +136,6 @@ Every step must contain the actual content an engineer needs. These are **plan f
 **Test mode:**
 - **Vue components (SFCs):** Use Vitest browser mode (`@vitest/browser`). Tests render components in a real browser, not jsdom.
 - **Composables, stores, utilities, plain functions:** Use Vitest node mode. No DOM required.
-- **E2E/integration flows:** Use Playwright (via `@vitest/browser` or standalone).
-
 Follow the standard TDD task template (test → fail → implement → pass → commit) when the task requires tests.
 
 **Test infrastructure setup:** If the project does not yet have testing dependencies installed, the first task in the plan should set up the test infrastructure:

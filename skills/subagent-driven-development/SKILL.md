@@ -9,7 +9,7 @@ Execute plan by dispatching fresh subagent per task, with two-stage review after
 
 **Why subagents:** You delegate tasks to specialized agents with isolated context. By precisely crafting their instructions and context, you ensure they stay focused and succeed at their task. They should never inherit your session's context or history — you construct exactly what they need. This also preserves your own context for coordination work.
 
-**Core principle:** Fresh subagent per task + two-stage review (spec then quality) = high quality, fast iteration
+**Core principle:** Fresh subagent per task + two-stage review (spec then quality) = high quality, fast iteration. **Every execution MUST end with `superpowers:finishing-a-development-branch`** — no exceptions.
 
 **Continuous execution:** Do not pause to check in with your human partner between tasks. Execute all tasks from the plan without stopping. The only reasons to stop are: BLOCKED status you cannot resolve, ambiguity that genuinely prevents progress, or all tasks complete. "Should I continue?" prompts and progress summaries waste their time — they asked you to execute the plan, so execute it.
 
@@ -198,6 +198,10 @@ Code reviewer: ✅ Approved
 [Dispatch final code-reviewer]
 Final reviewer: All requirements met, ready to merge
 
+[MANDATORY: Invoke superpowers:finishing-a-development-branch]
+You: "I'm using the finishing-a-development-branch skill to complete this work."
+[Verifies tests, detects environment, presents merge/PR/keep/discard options]
+
 Done!
 ```
 
@@ -248,6 +252,7 @@ Done!
 - Let implementer self-review replace actual review (both are needed)
 - **Start code quality review before spec compliance is ✅** (wrong order)
 - Move to next task while either review has open issues
+- **Skip finishing-a-development-branch after all tasks complete** (it is MANDATORY — every implementation must end with it)
 
 **If subagent asks questions:**
 - Answer clearly and completely
@@ -270,7 +275,7 @@ Done!
 - **superpowers:using-git-worktrees** - Ensures isolated workspace (creates one or verifies existing)
 - **superpowers:writing-plans** - Creates the plan this skill executes
 - **superpowers:requesting-code-review** - Code review template for reviewer subagents
-- **superpowers:finishing-a-development-branch** - Complete development after all tasks
+- **superpowers:finishing-a-development-branch** - **MANDATORY final step** after all tasks + final review. Must be invoked every time — verifies tests, presents merge/PR/keep/discard options, handles cleanup.
 
 **Subagents should use:**
 - **superpowers:test-driven-development** - Subagents follow TDD for each task

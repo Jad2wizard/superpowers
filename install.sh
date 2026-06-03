@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install superpowers-vue and its required dependency ui-ux-pro-max
+# Install superpowers-vue with all dependencies
 #
 # Usage: ./install.sh [--scope user|project|local]
 #   --scope   Installation scope (default: user)
@@ -46,6 +46,39 @@ echo "==> Installing required dependency: ui-ux-pro-max..."
 claude plugin install ui-ux-pro-max@ui-ux-pro-max-skill --scope "$SCOPE" 2>/dev/null && \
     echo "    ui-ux-pro-max installed." || \
     echo "    ui-ux-pro-max may already be installed."
+
+echo ""
+echo "==> Installing Playwright globally..."
+if command -v playwright &>/dev/null; then
+    echo "    Playwright CLI already installed ($(playwright --version 2>/dev/null || echo 'unknown version'))."
+else
+    npm install -g playwright 2>/dev/null && \
+        echo "    Playwright CLI installed." || \
+        echo "    Playwright global install failed. You can install it later: npm install -g playwright"
+fi
+echo "    Installing Chromium browser..."
+npx playwright install chromium 2>/dev/null && \
+    echo "    Chromium browser installed." || \
+    echo "    Chromium install skipped or failed. You can install it later: npx playwright install chromium"
+
+echo ""
+echo "==> Installing @playwright/test to project ($(pwd))..."
+if [ -f "package.json" ]; then
+    echo "    Found existing package.json."
+else
+    echo "    No package.json found. Running npm init -y..."
+    if npm init -y >/dev/null 2>&1; then
+        echo "    package.json created."
+    else
+        echo "    ERROR: Failed to create package.json. Skipping project-level Playwright install."
+        PLAYWRIGHT_SKIP=true
+    fi
+fi
+if [ "${PLAYWRIGHT_SKIP:-}" != "true" ]; then
+    npm install -D @playwright/test playwright 2>/dev/null && \
+        echo "    @playwright/test installed to project." || \
+        echo "    Project-level Playwright install failed. Skills will install it on first use."
+fi
 
 echo ""
 echo "==> Installing Vue tech stack skills to ~/.claude/skills/..."
