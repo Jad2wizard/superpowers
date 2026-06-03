@@ -55,6 +55,7 @@ claude plugin install "${PLUGIN_NAME}@${MARKETPLACE_NAME}" --scope "$SCOPE" 2>/d
 
 echo ""
 echo "==> Installing required dependency: ui-ux-pro-max..."
+claude plugin marketplace add nextlevelbuilder/ui-ux-pro-max-skill --scope "$SCOPE" 2>/dev/null
 claude plugin install ui-ux-pro-max@ui-ux-pro-max-skill --scope "$SCOPE" 2>/dev/null && \
     echo "    ui-ux-pro-max installed." || \
     echo "    ui-ux-pro-max may already be installed."
@@ -69,9 +70,31 @@ else
         echo "    Playwright global install failed. You can install it later: npm install -g playwright"
 fi
 echo "    Installing Chromium browser..."
-npx playwright install chromium 2>/dev/null && \
-    echo "    Chromium browser installed." || \
-    echo "    Chromium install skipped or failed. You can install it later: npx playwright install chromium"
+CHROMIUM_RELEASE_URL="https://github.com/Jad2wizard/superpowers/releases/download/chromium-148.0.7778.96-win64/chrome-win64.zip"
+
+if PLAYWRIGHT_DOWNLOAD_HOST=https://npmmirror.com/mirrors/playwright/ npx playwright install chromium 2>/dev/null; then
+    echo "    Chromium browser installed (from mirror)."
+else
+    echo "    Mirror download failed. Downloading from GitHub Releases..."
+    # Find Playwright cache directory via dry-run
+    INSTALL_DIR=$(npx playwright install chromium --dry-run 2>/dev/null | grep "Install location:" | sed 's/.*Install location:\s*//' | tr -d '\r')
+    if [ -n "$INSTALL_DIR" ]; then
+        ZIP_PATH="/tmp/chrome-$(uname -s)-$(uname -m).zip"
+        if curl -L -o "$ZIP_PATH" "$CHROMIUM_RELEASE_URL" --connect-timeout 30 --max-time 600 -# 2>&1 && [ -f "$ZIP_PATH" ]; then
+            echo ""
+            echo "    Extracting to $INSTALL_DIR..."
+            mkdir -p "$INSTALL_DIR"
+            unzip -o "$ZIP_PATH" -d "$INSTALL_DIR" >/dev/null 2>&1
+            rm -f "$ZIP_PATH"
+            echo "    Chromium browser installed (from GitHub Release)."
+        else
+            rm -f "$ZIP_PATH"
+            echo "    GitHub Release download failed. Install manually: npx playwright install chromium"
+        fi
+    else
+        echo "    Could not determine install location. Install manually: npx playwright install chromium"
+    fi
+fi
 
 echo ""
 echo "==> Installing @playwright/test to project (${PROJECT_DIR})..."

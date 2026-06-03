@@ -49,6 +49,7 @@ if ($LASTEXITCODE -eq 0) {
 
 Write-Host ""
 Write-Host "==> Installing required dependency: ui-ux-pro-max..."
+claude plugin marketplace add nextlevelbuilder/ui-ux-pro-max-skill --scope "$Scope" 2>$null
 claude plugin install ui-ux-pro-max@ui-ux-pro-max-skill --scope "$Scope" 2>$null
 if ($LASTEXITCODE -eq 0) {
     Write-Host "    ui-ux-pro-max installed."
@@ -71,11 +72,31 @@ if ($playwrightCmd) {
     }
 }
 Write-Host "    Installing Chromium browser..."
+$env:PLAYWRIGHT_DOWNLOAD_HOST = "https://npmmirror.com/mirrors/playwright/"
 npx playwright install chromium 2>$null
 if ($LASTEXITCODE -eq 0) {
-    Write-Host "    Chromium browser installed."
+    Write-Host "    Chromium browser installed (from mirror)."
 } else {
-    Write-Host "    Chromium install skipped or failed. You can install it later: npx playwright install chromium"
+    Write-Host "    Mirror download failed. Downloading from GitHub Releases..."
+    $dryRun = npx playwright install chromium --dry-run 2>$null | Out-String
+    $installMatch = [regex]::Match($dryRun, "Install location:\s+(.+)")
+    if ($installMatch.Success) {
+        $installDir = $installMatch.Groups[1].Value.Trim()
+        $zipPath = "$env:TEMP\chrome-win64.zip"
+        Invoke-WebRequest -Uri "https://github.com/Jad2wizard/superpowers/releases/download/chromium-148.0.7778.96-win64/chrome-win64.zip" -OutFile $zipPath -ErrorAction SilentlyContinue
+        if ((Test-Path $zipPath) -and ((Get-Item $zipPath).Length -gt 1048576)) {
+            Write-Host "    Extracting to $installDir..."
+            New-Item -ItemType Directory -Path $installDir -Force | Out-Null
+            Expand-Archive -Path $zipPath -DestinationPath $installDir -Force
+            Remove-Item $zipPath
+            Write-Host "    Chromium browser installed (from GitHub Release)."
+        } else {
+            Remove-Item $zipPath -ErrorAction SilentlyContinue
+            Write-Host "    GitHub Release download failed. Install manually: npx playwright install chromium"
+        }
+    } else {
+        Write-Host "    Could not determine install location. Install manually: npx playwright install chromium"
+    }
 }
 
 Write-Host ""
