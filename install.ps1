@@ -1,13 +1,15 @@
 # Install superpowers-vue with all dependencies
 #
-# Usage: .\install.ps1 [[-Scope] <string>]
+# Usage: .\install.ps1 [[-Scope] <string>] [[-Path] <string>]
 #   -Scope   Installation scope (default: user)
 #     user    - Available for all projects (~/.claude/)
 #     project - Available for this project only
-#     local   - Custom local path
+#     local   - Install to custom path specified by -Path (default: script directory)
+#   -Path    Target directory for -Scope local (used as project dir for @playwright/test install)
 
 param(
-    [string]$Scope = "user"
+    [string]$Scope = "user",
+    [string]$InstallPath = ""
 )
 
 $ErrorActionPreference = "Continue"
@@ -15,7 +17,18 @@ $SCRIPT_DIR = Split-Path -Parent $MyInvocation.MyCommand.Path
 $MARKETPLACE_NAME = "superpowers-vue-marketplace"
 $PLUGIN_NAME = "superpowers-vue"
 
-Write-Host "==> Installing superpowers-vue (scope: ${Scope})..."
+# When -Path is given, cd to target directory so that -Scope local installs plugins there
+if ($InstallPath -ne "") {
+    $projectDir = Resolve-Path $InstallPath -ErrorAction SilentlyContinue
+    if (-not $projectDir) {
+        Write-Host "ERROR: Cannot access directory: $InstallPath"
+        exit 1
+    }
+    Set-Location $projectDir
+}
+$projectDir = (Get-Location).Path
+
+Write-Host "==> Installing superpowers-vue (scope: ${Scope}, target: ${projectDir})..."
 Write-Host "    Source: $SCRIPT_DIR"
 
 # Add the local directory as a marketplace
@@ -66,7 +79,6 @@ if ($LASTEXITCODE -eq 0) {
 }
 
 Write-Host ""
-$projectDir = (Get-Location).Path
 Write-Host "==> Installing @playwright/test to project ($projectDir)..."
 $skipPlaywright = $false
 if (Test-Path "package.json") {

@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
 # Install superpowers-vue with all dependencies
 #
-# Usage: ./install.sh [--scope user|project|local]
+# Usage: ./install.sh [--scope user|project|local] [--path <directory>]
 #   --scope   Installation scope (default: user)
 #     user    - Available for all projects (~/.claude/)
 #     project - Available for this project only
-#     local   - Custom local path
+#     local   - Install to custom path specified by --path (default: script directory)
+#   --path    Target directory for --scope local (used as project dir for @playwright/test install)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 MARKETPLACE_NAME="superpowers-vue-marketplace"
 PLUGIN_NAME="superpowers-vue"
 SCOPE="user"
+INSTALL_PATH=""
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -20,15 +22,25 @@ while [[ $# -gt 0 ]]; do
             SCOPE="$2"
             shift 2
             ;;
+        --path)
+            INSTALL_PATH="$2"
+            shift 2
+            ;;
         *)
             echo "Unknown option: $1"
-            echo "Usage: ./install.sh [--scope user|project|local]"
+            echo "Usage: ./install.sh [--scope user|project|local] [--path <directory>]"
             exit 1
             ;;
     esac
 done
 
-echo "==> Installing superpowers-vue (scope: ${SCOPE})..."
+# When --path is given, cd to target directory so that --scope local installs plugins there
+if [ -n "$INSTALL_PATH" ]; then
+    cd "$INSTALL_PATH" 2>/dev/null || { echo "ERROR: Cannot access directory: $INSTALL_PATH"; exit 1; }
+fi
+PROJECT_DIR="$(pwd)"
+
+echo "==> Installing superpowers-vue (scope: ${SCOPE}, target: ${PROJECT_DIR})..."
 echo "    Source: $SCRIPT_DIR"
 
 # Add the local directory as a marketplace
@@ -62,7 +74,7 @@ npx playwright install chromium 2>/dev/null && \
     echo "    Chromium install skipped or failed. You can install it later: npx playwright install chromium"
 
 echo ""
-echo "==> Installing @playwright/test to project ($(pwd))..."
+echo "==> Installing @playwright/test to project (${PROJECT_DIR})..."
 if [ -f "package.json" ]; then
     echo "    Found existing package.json."
 else
