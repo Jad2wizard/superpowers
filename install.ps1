@@ -1,6 +1,6 @@
 # Install superpowers-vue with all dependencies
 #
-# Usage: .\install.ps1 [[-Scope] <string>] [[-Path] <string>]
+# Usage: .\install.ps1 [-Scope <user|project|local>] [-Path <directory>]
 #   -Scope   Installation scope (default: user)
 #     user    - Available for all projects (~/.claude/)
 #     project - Available for this project only
@@ -9,7 +9,7 @@
 
 param(
     [string]$Scope = "user",
-    [string]$InstallPath = ""
+    [string]$Path = ""
 )
 
 $ErrorActionPreference = "Continue"
@@ -18,10 +18,10 @@ $MARKETPLACE_NAME = "superpowers-vue-marketplace"
 $PLUGIN_NAME = "superpowers-vue"
 
 # When -Path is given, cd to target directory so that -Scope local installs plugins there
-if ($InstallPath -ne "") {
-    $projectDir = Resolve-Path $InstallPath -ErrorAction SilentlyContinue
+if ($Path -ne "") {
+    $projectDir = Resolve-Path $Path -ErrorAction SilentlyContinue
     if (-not $projectDir) {
-        Write-Host "ERROR: Cannot access directory: $InstallPath"
+        Write-Host "ERROR: Cannot access directory: $Path"
         exit 1
     }
     Set-Location $projectDir
