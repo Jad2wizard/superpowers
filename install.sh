@@ -110,9 +110,9 @@ else
     fi
 fi
 if [ "${PLAYWRIGHT_SKIP:-}" != "true" ]; then
-    npm install -D @playwright/test playwright 2>/dev/null && \
+    npm install -D @playwright/test 2>/dev/null && \
         echo "    @playwright/test installed to project." || \
-        echo "    Project-level Playwright install failed. Skills will install it on first use."
+        echo "    Project-level @playwright/test install failed. Skills will install it on first use."
 fi
 
 echo ""

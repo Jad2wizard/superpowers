@@ -115,7 +115,7 @@ if (Test-Path "package.json") {
     }
 }
 if (-not $skipPlaywright) {
-    npm install -D @playwright/test playwright 2>$null
+    npm install -D @playwright/test 2>$null
     if ($LASTEXITCODE -eq 0) {
         Write-Host "    @playwright/test installed to project."
     } else {
