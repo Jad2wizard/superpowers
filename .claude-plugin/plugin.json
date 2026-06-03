@@ -1,7 +1,7 @@
 {
   "name": "superpowers-vue",
   "description": "Superpowers adapted for Vue projects: TDD, debugging, collaboration patterns, with integrated ui-ux-pro-max for UI design",
-  "version": "5.2.4",
+  "version": "5.2.5",
   "author": {
     "name": "Jad2Wizard"
   },

@@ -61,43 +61,7 @@ claude plugin install ui-ux-pro-max@ui-ux-pro-max-skill --scope "$SCOPE" 2>/dev/
     echo "    ui-ux-pro-max may already be installed."
 
 echo ""
-echo "==> Installing Playwright globally..."
-if command -v playwright &>/dev/null; then
-    echo "    Playwright CLI already installed ($(playwright --version 2>/dev/null || echo 'unknown version'))."
-else
-    npm install -g playwright 2>/dev/null && \
-        echo "    Playwright CLI installed." || \
-        echo "    Playwright global install failed. You can install it later: npm install -g playwright"
-fi
-echo "    Installing Chromium browser..."
-CHROMIUM_RELEASE_URL="https://github.com/Jad2wizard/superpowers/releases/download/chromium-148.0.7778.96-win64/chrome-win64.zip"
-
-if PLAYWRIGHT_DOWNLOAD_HOST=https://npmmirror.com/mirrors/playwright/ npx playwright install chromium 2>/dev/null; then
-    echo "    Chromium browser installed (from mirror)."
-else
-    echo "    Mirror download failed. Downloading from GitHub Releases..."
-    # Find Playwright cache directory via dry-run
-    INSTALL_DIR=$(npx playwright install chromium --dry-run 2>/dev/null | grep "Install location:" | sed 's/.*Install location:\s*//' | tr -d '\r')
-    if [ -n "$INSTALL_DIR" ]; then
-        ZIP_PATH="/tmp/chrome-$(uname -s)-$(uname -m).zip"
-        if curl -L -o "$ZIP_PATH" "$CHROMIUM_RELEASE_URL" --connect-timeout 30 --max-time 600 -# 2>&1 && [ -f "$ZIP_PATH" ]; then
-            echo ""
-            echo "    Extracting to $INSTALL_DIR..."
-            mkdir -p "$INSTALL_DIR"
-            unzip -o "$ZIP_PATH" -d "$INSTALL_DIR" >/dev/null 2>&1
-            rm -f "$ZIP_PATH"
-            echo "    Chromium browser installed (from GitHub Release)."
-        else
-            rm -f "$ZIP_PATH"
-            echo "    GitHub Release download failed. Install manually: npx playwright install chromium"
-        fi
-    else
-        echo "    Could not determine install location. Install manually: npx playwright install chromium"
-    fi
-fi
-
-echo ""
-echo "==> Installing @playwright/test to project (${PROJECT_DIR})..."
+echo "==> Installing Playwright to project (${PROJECT_DIR})..."
 if [ -f "package.json" ]; then
     echo "    Found existing package.json."
 else
@@ -105,14 +69,43 @@ else
     if npm init -y >/dev/null 2>&1; then
         echo "    package.json created."
     else
-        echo "    ERROR: Failed to create package.json. Skipping project-level Playwright install."
+        echo "    ERROR: Failed to create package.json. Skipping Playwright install."
         PLAYWRIGHT_SKIP=true
     fi
 fi
 if [ "${PLAYWRIGHT_SKIP:-}" != "true" ]; then
-    npm install -D @playwright/test 2>/dev/null && \
-        echo "    @playwright/test installed to project." || \
-        echo "    Project-level @playwright/test install failed. Skills will install it on first use."
+    npm install -D @playwright/test playwright 2>/dev/null && \
+        echo "    @playwright/test + playwright installed to project." || \
+        { echo "    Project-level install failed. Skills will install it on first use."; PLAYWRIGHT_SKIP=true; }
+fi
+
+if [ "${PLAYWRIGHT_SKIP:-}" != "true" ]; then
+    echo "    Installing Chromium browser..."
+    CHROMIUM_RELEASE_URL="https://github.com/Jad2wizard/superpowers/releases/download/chromium-148.0.7778.96-win64/chrome-win64.zip"
+    if PLAYWRIGHT_DOWNLOAD_HOST=https://npmmirror.com/mirrors/playwright/ npx playwright install chromium 2>/dev/null; then
+        echo "    Chromium browser installed (from mirror)."
+    else
+        echo "    Mirror download failed. Downloading from GitHub Releases..."
+        INSTALL_DIR=$(npx playwright install chromium --dry-run 2>/dev/null | grep "Install location:" | sed 's/.*Install location:\s*//' | tr -d '\r')
+        if [ -n "$INSTALL_DIR" ]; then
+            ZIP_PATH="/tmp/chrome-$(uname -s)-$(uname -m).zip"
+            if curl -L -o "$ZIP_PATH" "$CHROMIUM_RELEASE_URL" --connect-timeout 30 --max-time 600 -# 2>&1 && [ -f "$ZIP_PATH" ]; then
+                echo ""
+                echo "    Extracting to $INSTALL_DIR..."
+                mkdir -p "$INSTALL_DIR"
+                unzip -o "$ZIP_PATH" -d "$INSTALL_DIR" >/dev/null 2>&1
+                rm -f "$ZIP_PATH"
+                echo "    Chromium browser installed (from GitHub Release)."
+            else
+                rm -f "$ZIP_PATH"
+                echo "    GitHub Release download failed. Install manually: npx playwright install chromium"
+            fi
+        else
+            echo "    Could not determine install location. Install manually: npx playwright install chromium"
+        fi
+    fi
+else
+    echo "    Skipping Chromium browser install (playwright not available in project)."
 fi
 
 echo ""

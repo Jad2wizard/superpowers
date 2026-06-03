@@ -58,49 +58,7 @@ if ($LASTEXITCODE -eq 0) {
 }
 
 Write-Host ""
-Write-Host "==> Installing Playwright globally..."
-$playwrightCmd = Get-Command playwright -ErrorAction SilentlyContinue
-if ($playwrightCmd) {
-    $version = & playwright --version 2>$null
-    Write-Host "    Playwright CLI already installed ($version)."
-} else {
-    npm install -g playwright 2>$null
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "    Playwright CLI installed."
-    } else {
-        Write-Host "    Playwright global install failed. You can install it later: npm install -g playwright"
-    }
-}
-Write-Host "    Installing Chromium browser..."
-$env:PLAYWRIGHT_DOWNLOAD_HOST = "https://npmmirror.com/mirrors/playwright/"
-npx playwright install chromium 2>$null
-if ($LASTEXITCODE -eq 0) {
-    Write-Host "    Chromium browser installed (from mirror)."
-} else {
-    Write-Host "    Mirror download failed. Downloading from GitHub Releases..."
-    $dryRun = npx playwright install chromium --dry-run 2>$null | Out-String
-    $installMatch = [regex]::Match($dryRun, "Install location:\s+(.+)")
-    if ($installMatch.Success) {
-        $installDir = $installMatch.Groups[1].Value.Trim()
-        $zipPath = "$env:TEMP\chrome-win64.zip"
-        Invoke-WebRequest -Uri "https://github.com/Jad2wizard/superpowers/releases/download/chromium-148.0.7778.96-win64/chrome-win64.zip" -OutFile $zipPath -ErrorAction SilentlyContinue
-        if ((Test-Path $zipPath) -and ((Get-Item $zipPath).Length -gt 1048576)) {
-            Write-Host "    Extracting to $installDir..."
-            New-Item -ItemType Directory -Path $installDir -Force | Out-Null
-            Expand-Archive -Path $zipPath -DestinationPath $installDir -Force
-            Remove-Item $zipPath
-            Write-Host "    Chromium browser installed (from GitHub Release)."
-        } else {
-            Remove-Item $zipPath -ErrorAction SilentlyContinue
-            Write-Host "    GitHub Release download failed. Install manually: npx playwright install chromium"
-        }
-    } else {
-        Write-Host "    Could not determine install location. Install manually: npx playwright install chromium"
-    }
-}
-
-Write-Host ""
-Write-Host "==> Installing @playwright/test to project ($projectDir)..."
+Write-Host "==> Installing Playwright to project ($projectDir)..."
 $skipPlaywright = $false
 if (Test-Path "package.json") {
     Write-Host "    Found existing package.json."
@@ -110,17 +68,50 @@ if (Test-Path "package.json") {
     if (Test-Path "package.json") {
         Write-Host "    package.json created."
     } else {
-        Write-Host "    ERROR: Failed to create package.json. Skipping project-level Playwright install."
+        Write-Host "    ERROR: Failed to create package.json. Skipping Playwright install."
         $skipPlaywright = $true
     }
 }
 if (-not $skipPlaywright) {
-    npm install -D @playwright/test 2>$null
+    npm install -D @playwright/test playwright 2>$null
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "    @playwright/test installed to project."
+        Write-Host "    @playwright/test + playwright installed to project."
     } else {
-        Write-Host "    Project-level Playwright install failed. Skills will install it on first use."
+        Write-Host "    Project-level install failed. Skills will install it on first use."
+        $skipPlaywright = $true
     }
+}
+
+if (-not $skipPlaywright) {
+    Write-Host "    Installing Chromium browser..."
+    $env:PLAYWRIGHT_DOWNLOAD_HOST = "https://npmmirror.com/mirrors/playwright/"
+    npx playwright install chromium 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "    Chromium browser installed (from mirror)."
+    } else {
+        Write-Host "    Mirror download failed. Downloading from GitHub Releases..."
+        $dryRun = npx playwright install chromium --dry-run 2>$null | Out-String
+        $installMatch = [regex]::Match($dryRun, "Install location:\s+(.+)")
+        if ($installMatch.Success) {
+            $installDir = $installMatch.Groups[1].Value.Trim()
+            $zipPath = "$env:TEMP\chrome-win64.zip"
+            Invoke-WebRequest -Uri "https://github.com/Jad2wizard/superpowers/releases/download/chromium-148.0.7778.96-win64/chrome-win64.zip" -OutFile $zipPath -ErrorAction SilentlyContinue
+            if ((Test-Path $zipPath) -and ((Get-Item $zipPath).Length -gt 1048576)) {
+                Write-Host "    Extracting to $installDir..."
+                New-Item -ItemType Directory -Path $installDir -Force | Out-Null
+                Expand-Archive -Path $zipPath -DestinationPath $installDir -Force
+                Remove-Item $zipPath
+                Write-Host "    Chromium browser installed (from GitHub Release)."
+            } else {
+                Remove-Item $zipPath -ErrorAction SilentlyContinue
+                Write-Host "    GitHub Release download failed. Install manually: npx playwright install chromium"
+            }
+        } else {
+            Write-Host "    Could not determine install location. Install manually: npx playwright install chromium"
+        }
+    }
+} else {
+    Write-Host "    Skipping Chromium browser install (playwright not available in project)."
 }
 
 Write-Host ""
