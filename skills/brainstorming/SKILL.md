@@ -27,10 +27,11 @@ Use the TaskCreate tool to create exactly these tasks and complete them in order
 4. **Propose 2-3 approaches in the browser** — Write each approach as HTML content to the visual companion. Show architecture diagrams and trade-off comparisons side-by-side. Do NOT use terminal text for this step if the companion is running.
 5. **Present design in the browser** — Write each design section as HTML to the visual companion. Architecture, component tree, data flow — present all of them visually. Get user approval after each section. After all sections are confirmed, present a summary table and explicitly ask the user to confirm the overall design. WAIT for their response — do NOT proceed to Step 6 until they explicitly approve. Do NOT present design sections in terminal text when the companion is running.
 6. **Generate UI Mockups** (visual/UI projects only) — invoke ui-ux-pro-max, generate HTML design tokens and screen mockups. Skip for non-visual projects. See Step 6 section below.
-7. **Write design doc** — save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` and commit. If Step 6 was executed, MUST include the UI Design chapter with mockup reference (see format below).
-8. **Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
-9. **User reviews written spec** — ask user to review the spec file before proceeding
-10. **Transition to implementation** — invoke writing-plans skill to create implementation plan
+7. **Grill the Design** — interview the user relentlessly about the confirmed design, walking down each branch of the decision tree, stress-testing assumptions with edge cases. See Step 7 section below.
+8. **Write design doc** — save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` and commit. If Step 6 was executed, MUST include the UI Design chapter with mockup reference (see format below).
+9. **Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
+10. **User reviews written spec** — ask user to review the spec file before proceeding
+11. **Transition to implementation** — invoke writing-plans skill to create implementation plan
 
 Do NOT merge or skip any of these tasks. Each one must be a separate TaskCreate call.
 
@@ -47,6 +48,7 @@ digraph brainstorming {
     "User approves design?" [shape=diamond];
     "Visual interface project?" [shape=diamond];
     "Generate UI Mockups\n(invoke ui-ux-pro-max)" [shape=box];
+    "Grill the Design\n(stress-test every decision)" [shape=box];
     "Write design doc" [shape=box];
     "Spec self-review\n(fix inline)" [shape=box];
     "User reviews spec?" [shape=diamond];
@@ -62,8 +64,9 @@ digraph brainstorming {
     "User approves design?" -> "Present design sections" [label="no, revise"];
     "User approves design?" -> "Visual interface project?" [label="yes"];
     "Visual interface project?" -> "Generate UI Mockups\n(invoke ui-ux-pro-max)" [label="yes"];
-    "Visual interface project?" -> "Write design doc" [label="no"];
-    "Generate UI Mockups\n(invoke ui-ux-pro-max)" -> "Write design doc";
+    "Visual interface project?" -> "Grill the Design\n(stress-test every decision)" [label="no"];
+    "Generate UI Mockups\n(invoke ui-ux-pro-max)" -> "Grill the Design\n(stress-test every decision)";
+    "Grill the Design\n(stress-test every decision)" -> "Write design doc";
     "Write design doc" -> "Spec self-review\n(fix inline)";
     "Spec self-review\n(fix inline)" -> "User reviews spec?";
     "User reviews spec?" -> "Write design doc" [label="changes requested"];
@@ -83,11 +86,7 @@ digraph brainstorming {
 - For appropriately-scoped projects, ask questions one at a time to refine the idea
 - **Every question must include your recommended answer** — the user confirms or corrects, never writes from scratch
 - Prefer multiple choice when possible; when open-ended is necessary, still give your best guess and ask the user to refine it
-- Only one question per message — but one question ≠ one topic. Walk down each branch of the design tree before moving on:
-  - When the user answers, probe one layer deeper: "why is that important?" or "what happens if that fails?"
-  - When the user uses a vague term ("account", "user", "data"), propose a precise definition immediately and ask if it's correct
-  - When a domain relationship is described, stress-test it with a concrete edge-case scenario
-- Don't move to the next topic until you've exhausted the current one. A single design topic may need 3-5 follow-up questions before it's truly resolved
+- Only one question per message
 
 **Exploring approaches:**
 
@@ -246,3 +245,59 @@ Present the mockups to the user. If the visual companion is running, point them 
 </HARD-GATE>
 
 **Principle:** ui-ux-pro-max is a design data source, not a replacement for brainstorming's conversational flow. Its output is the basis for discussion; final decisions are confirmed by the user.
+
+## Step 7: Grill the Design
+
+After the design is confirmed (and mockups generated for visual projects), stress-test the complete design through relentless interactive questioning. This step applies to ALL projects — visual and non-visual.
+
+**Goal:** Walk down every branch of the design tree, resolve dependencies between decisions, and expose hidden assumptions before the design is committed to a spec document.
+
+### 7a. Announce the grilling session
+
+> "The design is confirmed. Now I'm going to grill the design — stress-testing every decision, walking down each branch of the design tree, and exposing hidden assumptions. This makes sure we catch problems now rather than during implementation. I'll ask questions one at a time."
+
+### 7b. Grill systematically
+
+Walk through each of these dimensions, one question at a time. For every question, provide your recommended answer — the user confirms or corrects, never writes from scratch.
+
+**Decision tree:** For each design decision, trace its consequences:
+- "The design chooses X over Y. What happens if X's assumption about `<constraint>` is wrong?"
+- "This module depends on `<dependency>`. What is the fallback if that dependency is unavailable?"
+- Walk down into sub-decisions: "You mentioned using `<pattern>`. How does that handle `<edge case>`?"
+
+**Vague terms:** When the user uses a vague term ("account", "user", "data", "session"), propose a precise definition immediately and ask if it's correct:
+- "When you say 'user', do you mean an authenticated account with a login, or any visitor to the site?"
+- Don't move on until the term has a concrete definition.
+
+**Edge cases:** Stress-test every interface and data flow with concrete scenarios:
+- "What happens when `<input>` is empty? What about when it's extremely large?"
+- "If `<operation>` fails midway, what state is the system left in?"
+- "Two users perform `<action>` simultaneously — what happens?"
+
+**Dependencies between decisions:** Identify decisions that depend on each other:
+- "This authentication choice affects how we handle `<feature>`. Given the decision you just confirmed, does `<earlier decision>` still hold?"
+- Resolve conflicts before moving on.
+
+**Missing pieces:** Probe for gaps in the design:
+- "The design covers the happy path for `<flow>`. What should happen when the user's network drops?"
+- "How is `<concern>` handled? I don't see it in the current design."
+
+### 7c. Do NOT move to the next topic until the current one is resolved
+
+A single design decision may need 3-5 follow-up questions before it's truly exhausted. Don't hop between topics — stay on one branch until:
+- The user has confirmed or corrected your recommended answer
+- You've probed one layer deeper and gotten resolution
+- Any vague terms in the answer have been concretely defined
+
+### 7d. Summarize findings
+
+After the grilling is complete, summarize what was discovered and confirmed:
+- Decisions that were validated under pressure
+- Changes or clarifications that emerged from the grilling
+- Any open questions that remain (with recommended answers)
+
+Ask the user: "The grilling uncovered `<N>` clarifications. Does the design still hold up, or should we revisit anything before writing the spec?"
+
+<HARD-GATE>
+Do NOT proceed to Step 8 until the user confirms the design has survived the grilling. If the grilling exposed fundamental problems, go back to the relevant earlier step (Step 3, 4, or 5) and rework.
+</HARD-GATE>
